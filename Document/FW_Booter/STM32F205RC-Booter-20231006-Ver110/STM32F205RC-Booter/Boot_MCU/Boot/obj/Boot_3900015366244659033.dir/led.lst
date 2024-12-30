@@ -1,0 +1,214 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:19
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Boot_MCU\Boot\led.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\led.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\led.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\led.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\led.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\led.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\led.c
+      1          /************************************************************************************//**
+      2          * \file         Demo/ARMCM3_STM32F2_Olimex_STM32P207_IAR/Boot/led.c
+      3          * \brief        LED driver source file.
+      4          * \ingroup      Boot_ARMCM3_STM32F2_Olimex_STM32P207_IAR
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2018  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It 
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "led.h"                                 /* module header                      */
+     34          #include "stm32f2xx.h"                           /* STM32 registers and drivers        */
+     35          #include "stm32f2xx_ll_gpio.h"                   /* STM32 LL GPIO header               */
+     36          
+     37          
+     38          /****************************************************************************************
+     39          * Local data declarations
+     40          ****************************************************************************************/
+     41          /** \brief Holds the desired LED blink interval time. */
+     42          static blt_int16u ledBlinkIntervalMs;
+     43          
+     44          
+     45          /************************************************************************************//**
+     46          ** \brief     Initializes the LED blink driver.
+     47          ** \param     interval_ms Specifies the desired LED blink interval time in milliseconds.
+     48          ** \return    none.
+     49          **
+     50          ****************************************************************************************/
+     51          void LedBlinkInit(blt_int16u interval_ms)
+     52          {
+     53            /* store the interval time between LED toggles */
+     54            ledBlinkIntervalMs = interval_ms;
+     55          } /*** end of LedBlinkInit ***/
+     56          
+     57          
+     58          /************************************************************************************//**
+     59          ** \brief     Task function for blinking the LED as a fixed timer interval.
+     60          ** \return    none.
+     61          **
+     62          ****************************************************************************************/
+     63          
+     64          
+     65          void LedBlinkTask(void)
+     66          {
+     67              static blt_bool ledOn = BLT_FALSE;
+     68              static blt_int32u nextBlinkEvent = 0;
+     69          
+     70              /* check for blink event */
+     71              if (TimerGet() >= nextBlinkEvent)
+     72              {
+     73                /* toggle the LED state */
+     74                if (ledOn == BLT_FALSE)
+     75                {
+     76                  ledOn = BLT_TRUE;
+     77                  LL_GPIO_SetOutputPin(GPIOA, LL_GPIO_PIN_11);
+     78                }
+     79                else
+     80                {
+     81                    ledOn = BLT_FALSE;
+     82                    LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_11);   // LL_GPIO_ResetOutputPin(GPIOF, LL_GPIO_PIN_8);
+     83                  }
+     84                /* schedule the next blink event */
+     85                nextBlinkEvent = TimerGet() + ledBlinkIntervalMs;
+     86                
+     87          
+     88                         
+     89          #if 0
+     90                static blt_int8u testCanData[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+     91                static blt_int8u testByte = 0x55;
+     92                /* CAN Test : dnpark */
+     93                void CanTransmitPacket_StdId(blt_int8u *data, blt_int8u len);
+     94                void CanTransmitPacket_ExtId(blt_int8u *data, blt_int8u len);
+     95                CanTransmitPacket_StdId(testCanData, 8);
+     96                CanTransmitPacket_ExtId(testCanData, 8);
+     97          #endif
+     98                
+     99          #if 0
+    100                LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+    101                //LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - RX
+    102                void Test_FFF(blt_int8u data);
+    103                Test_FFF(testByte++);
+    104                if (testByte >= 0x80 ) testByte = ' ';
+    105          #endif
+    106                
+    107              }
+    108          } /*** end of LedBlinkTask ***/
+    109          
+    110          
+    111          /************************************************************************************//**
+    112          ** \brief     Cleans up the LED blink driver. This is intended to be used upon program
+    113          **            exit.
+    114          ** \return    none.
+    115          **
+    116          ****************************************************************************************/
+    117          void LedBlinkExit(void)
+    118          {
+    119            /* turn the LED off */
+    120            LL_GPIO_ResetOutputPin(GPIOF, LL_GPIO_PIN_8);
+    121          } /*** end of LedBlinkExit ***/
+    122          
+    123          
+    124          /*********************************** end of led.c **************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_GPIO_ResetOutputPin
+       0   LL_GPIO_SetOutputPin
+       8   LedBlinkExit
+         8   -> LL_GPIO_ResetOutputPin
+       0   LedBlinkInit
+       8   LedBlinkTask
+         8   -> LL_GPIO_ResetOutputPin
+         8   -> LL_GPIO_SetOutputPin
+         8   -> TimerGet
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+       4  ??DataTable3_4
+       6  LL_GPIO_ResetOutputPin
+       4  LL_GPIO_SetOutputPin
+      14  LedBlinkExit
+       6  LedBlinkInit
+      66  LedBlinkTask
+       2  ledBlinkIntervalMs
+       1  ledOn
+       4  nextBlinkEvent
+
+ 
+   7 bytes in section .bss
+ 116 bytes in section .text
+ 
+ 116 bytes of CODE memory
+   7 bytes of DATA memory
+
+Errors: none
+Warnings: none

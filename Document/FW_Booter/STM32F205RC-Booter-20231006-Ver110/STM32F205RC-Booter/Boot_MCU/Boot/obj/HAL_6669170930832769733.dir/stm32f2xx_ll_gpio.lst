@@ -1,0 +1,412 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:18
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_gpio.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_gpio.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_gpio.c
+#        -D USE_HAL_DRIVER -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_gpio.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_gpio.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_gpio.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_gpio.c
+      1          /**
+      2            ******************************************************************************
+      3            * @file    stm32f2xx_ll_gpio.c
+      4            * @author  MCD Application Team
+      5            * @brief   GPIO LL module driver.
+      6            ******************************************************************************
+      7            * @attention
+      8            *
+      9            * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+     10            * All rights reserved.</center></h2>
+     11            *
+     12            * This software component is licensed by ST under BSD 3-Clause license,
+     13            * the "License"; You may not use this file except in compliance with the
+     14            * License. You may obtain a copy of the License at:
+     15            *                        opensource.org/licenses/BSD-3-Clause
+     16            *
+     17            ******************************************************************************
+     18            */
+     19          
+     20          #if defined(USE_FULL_LL_DRIVER)
+     21          
+     22          /* Includes ------------------------------------------------------------------*/
+     23          #include "stm32f2xx_ll_gpio.h"
+     24          #include "stm32f2xx_ll_bus.h"
+     25          #ifdef  USE_FULL_ASSERT
+     26          #include "stm32_assert.h"
+     27          #else
+     28          #define assert_param(expr) ((void)0U)
+     29          #endif
+     30          
+     31          /** @addtogroup STM32F2xx_LL_Driver
+     32            * @{
+     33            */
+     34          
+     35          #if defined (GPIOA) || defined (GPIOB) || defined (GPIOC) || defined (GPIOD) || defined (GPIOE) || defined (GPIOF) || defined (GPIOG) || defined (GPIOH) || defined (GPIOI)
+     36          
+     37          /** @addtogroup GPIO_LL
+     38            * @{
+     39            */
+     40          /** MISRA C:2012 deviation rule has been granted for following rules:
+     41            * Rule-12.2 - Medium: RHS argument is in interval [0,INF] which is out of
+     42            * range of the shift operator in following API :
+     43            * LL_GPIO_Init
+     44            * LL_GPIO_DeInit
+     45            * LL_GPIO_SetPinMode
+     46            * LL_GPIO_GetPinMode
+     47            * LL_GPIO_SetPinSpeed
+     48            * LL_GPIO_GetPinSpeed
+     49            * LL_GPIO_SetPinPull
+     50            * LL_GPIO_GetPinPull
+     51            * LL_GPIO_GetAFPin_0_7
+     52            * LL_GPIO_SetAFPin_0_7
+     53            * LL_GPIO_SetAFPin_8_15
+     54            * LL_GPIO_GetAFPin_8_15
+     55            */
+     56          
+     57          /* Private types -------------------------------------------------------------*/
+     58          /* Private variables ---------------------------------------------------------*/
+     59          /* Private constants ---------------------------------------------------------*/
+     60          /* Private macros ------------------------------------------------------------*/
+     61          /** @addtogroup GPIO_LL_Private_Macros
+     62            * @{
+     63            */
+     64          #define IS_LL_GPIO_PIN(__VALUE__)          (((0x00000000U) < (__VALUE__)) && ((__VALUE__) <= (LL_GPIO_PIN_ALL)))
+     65          
+     66          #define IS_LL_GPIO_MODE(__VALUE__)         (((__VALUE__) == LL_GPIO_MODE_INPUT)     ||\
+     67                                                      ((__VALUE__) == LL_GPIO_MODE_OUTPUT)    ||\
+     68                                                      ((__VALUE__) == LL_GPIO_MODE_ALTERNATE) ||\
+     69                                                      ((__VALUE__) == LL_GPIO_MODE_ANALOG))
+     70          
+     71          #define IS_LL_GPIO_OUTPUT_TYPE(__VALUE__)  (((__VALUE__) == LL_GPIO_OUTPUT_PUSHPULL)  ||\
+     72                                                      ((__VALUE__) == LL_GPIO_OUTPUT_OPENDRAIN))
+     73          
+     74          #define IS_LL_GPIO_SPEED(__VALUE__)        (((__VALUE__) == LL_GPIO_SPEED_FREQ_LOW)       ||\
+     75                                                      ((__VALUE__) == LL_GPIO_SPEED_FREQ_MEDIUM)    ||\
+     76                                                      ((__VALUE__) == LL_GPIO_SPEED_FREQ_HIGH)      ||\
+     77                                                      ((__VALUE__) == LL_GPIO_SPEED_FREQ_VERY_HIGH))
+     78          
+     79          #define IS_LL_GPIO_PULL(__VALUE__)         (((__VALUE__) == LL_GPIO_PULL_NO)   ||\
+     80                                                      ((__VALUE__) == LL_GPIO_PULL_UP)   ||\
+     81                                                      ((__VALUE__) == LL_GPIO_PULL_DOWN))
+     82          
+     83          #define IS_LL_GPIO_ALTERNATE(__VALUE__)    (((__VALUE__) == LL_GPIO_AF_0  )   ||\
+     84                                                      ((__VALUE__) == LL_GPIO_AF_1  )   ||\
+     85                                                      ((__VALUE__) == LL_GPIO_AF_2  )   ||\
+     86                                                      ((__VALUE__) == LL_GPIO_AF_3  )   ||\
+     87                                                      ((__VALUE__) == LL_GPIO_AF_4  )   ||\
+     88                                                      ((__VALUE__) == LL_GPIO_AF_5  )   ||\
+     89                                                      ((__VALUE__) == LL_GPIO_AF_6  )   ||\
+     90                                                      ((__VALUE__) == LL_GPIO_AF_7  )   ||\
+     91                                                      ((__VALUE__) == LL_GPIO_AF_8  )   ||\
+     92                                                      ((__VALUE__) == LL_GPIO_AF_9  )   ||\
+     93                                                      ((__VALUE__) == LL_GPIO_AF_10 )   ||\
+     94                                                      ((__VALUE__) == LL_GPIO_AF_11 )   ||\
+     95                                                      ((__VALUE__) == LL_GPIO_AF_12 )   ||\
+     96                                                      ((__VALUE__) == LL_GPIO_AF_13 )   ||\
+     97                                                      ((__VALUE__) == LL_GPIO_AF_14 )   ||\
+     98                                                      ((__VALUE__) == LL_GPIO_AF_15 ))
+     99          /**
+    100            * @}
+    101            */
+    102          
+    103          /* Private function prototypes -----------------------------------------------*/
+    104          
+    105          /* Exported functions --------------------------------------------------------*/
+    106          /** @addtogroup GPIO_LL_Exported_Functions
+    107            * @{
+    108            */
+    109          
+    110          /** @addtogroup GPIO_LL_EF_Init
+    111            * @{
+    112            */
+    113          
+    114          /**
+    115            * @brief  De-initialize GPIO registers (Registers restored to their default values).
+    116            * @param  GPIOx GPIO Port
+    117            * @retval An ErrorStatus enumeration value:
+    118            *          - SUCCESS: GPIO registers are de-initialized
+    119            *          - ERROR:   Wrong GPIO Port
+    120            */
+    121          ErrorStatus LL_GPIO_DeInit(GPIO_TypeDef *GPIOx)
+    122          {
+    123            ErrorStatus status = SUCCESS;
+    124          
+    125            /* Check the parameters */
+    126            assert_param(IS_GPIO_ALL_INSTANCE(GPIOx));
+    127          
+    128            /* Force and Release reset on clock of GPIOx Port */
+    129            if (GPIOx == GPIOA)
+    130            {
+    131              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOA);
+    132              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOA);
+    133            }
+    134            else if (GPIOx == GPIOB)
+    135            {
+    136              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOB);
+    137              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOB);
+    138            }
+    139            else if (GPIOx == GPIOC)
+    140            {
+    141              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOC);
+    142              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOC);
+    143            }
+    144          #if defined(GPIOD)
+    145            else if (GPIOx == GPIOD)
+    146            {
+    147              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOD);
+    148              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOD);
+    149            }
+    150          #endif /* GPIOD */
+    151          #if defined(GPIOE)
+    152            else if (GPIOx == GPIOE)
+    153            {
+    154              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOE);
+    155              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOE);
+    156            }
+    157          #endif /* GPIOE */
+    158          #if defined(GPIOF)
+    159            else if (GPIOx == GPIOF)
+    160            {
+    161              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOF);
+    162              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOF);
+    163            }
+    164          #endif /* GPIOF */
+    165          #if defined(GPIOG)
+    166            else if (GPIOx == GPIOG)
+    167            {
+    168              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOG);
+    169              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOG);
+    170            }
+    171          #endif /* GPIOG */
+    172          #if defined(GPIOH)
+    173            else if (GPIOx == GPIOH)
+    174            {
+    175              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOH);
+    176              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOH);
+    177            }
+    178          #endif /* GPIOH */
+    179          #if defined(GPIOI)
+    180            else if (GPIOx == GPIOI)
+    181            {
+    182              LL_AHB1_GRP1_ForceReset(LL_AHB1_GRP1_PERIPH_GPIOI);
+    183              LL_AHB1_GRP1_ReleaseReset(LL_AHB1_GRP1_PERIPH_GPIOI);
+    184            }
+    185          #endif /* GPIOI */
+    186            else
+    187            {
+    188              status = ERROR;
+    189            }
+    190          
+    191            return (status);
+    192          }
+    193          
+    194          /**
+    195            * @brief  Initialize GPIO registers according to the specified parameters in GPIO_InitStruct.
+    196            * @param  GPIOx GPIO Port
+    197            * @param  GPIO_InitStruct pointer to a @ref LL_GPIO_InitTypeDef structure
+    198            *         that contains the configuration information for the specified GPIO peripheral.
+    199            * @retval An ErrorStatus enumeration value:
+    200            *          - SUCCESS: GPIO registers are initialized according to GPIO_InitStruct content
+    201            *          - ERROR:   Not applicable
+    202            */
+    203          ErrorStatus LL_GPIO_Init(GPIO_TypeDef *GPIOx, LL_GPIO_InitTypeDef *GPIO_InitStruct)
+    204          {
+    205            uint32_t pinpos;
+    206            uint32_t currentpin;
+    207          
+    208            /* Check the parameters */
+    209            assert_param(IS_GPIO_ALL_INSTANCE(GPIOx));
+    210            assert_param(IS_LL_GPIO_PIN(GPIO_InitStruct->Pin));
+    211            assert_param(IS_LL_GPIO_MODE(GPIO_InitStruct->Mode));
+    212            assert_param(IS_LL_GPIO_PULL(GPIO_InitStruct->Pull));
+    213          
+    214            /* ------------------------- Configure the port pins ---------------- */
+    215            /* Initialize  pinpos on first pin set */
+    216            pinpos = POSITION_VAL(GPIO_InitStruct->Pin);
+    217          
+    218            /* Configure the port pins */
+    219            while (((GPIO_InitStruct->Pin) >> pinpos) != 0x00u)
+    220            {
+    221              /* Get current io position */
+    222              currentpin = (GPIO_InitStruct->Pin) & (0x00000001uL << pinpos);
+    223          
+    224              if (currentpin != 0x00u)
+    225              {
+    226                if ((GPIO_InitStruct->Mode == LL_GPIO_MODE_OUTPUT) || (GPIO_InitStruct->Mode == LL_GPIO_MODE_ALTERNATE))
+    227                {
+    228                  /* Check Speed mode parameters */
+    229                  assert_param(IS_LL_GPIO_SPEED(GPIO_InitStruct->Speed));
+    230          
+    231                  /* Speed mode configuration */
+    232                  LL_GPIO_SetPinSpeed(GPIOx, currentpin, GPIO_InitStruct->Speed);
+    233          
+    234                  /* Check Output mode parameters */
+    235                  assert_param(IS_LL_GPIO_OUTPUT_TYPE(GPIO_InitStruct->OutputType));
+    236          
+    237                  /* Output mode configuration*/
+    238                  LL_GPIO_SetPinOutputType(GPIOx, GPIO_InitStruct->Pin, GPIO_InitStruct->OutputType);
+    239                }
+    240          
+    241                /* Pull-up Pull down resistor configuration*/
+    242                LL_GPIO_SetPinPull(GPIOx, currentpin, GPIO_InitStruct->Pull);
+    243          
+    244                if (GPIO_InitStruct->Mode == LL_GPIO_MODE_ALTERNATE)
+    245                {
+    246                  /* Check Alternate parameter */
+    247                  assert_param(IS_LL_GPIO_ALTERNATE(GPIO_InitStruct->Alternate));
+    248          
+    249                  /* Speed mode configuration */
+    250                  if (POSITION_VAL(currentpin) < 0x00000008U)
+    251                  {
+    252                    LL_GPIO_SetAFPin_0_7(GPIOx, currentpin, GPIO_InitStruct->Alternate);
+    253                  }
+    254                  else
+    255                  {
+    256                    LL_GPIO_SetAFPin_8_15(GPIOx, currentpin, GPIO_InitStruct->Alternate);
+    257                  }
+    258                }
+    259          
+    260                /* Pin Mode configuration */
+    261                LL_GPIO_SetPinMode(GPIOx, currentpin, GPIO_InitStruct->Mode);
+    262              }
+    263              pinpos++;
+    264            }
+    265            return (SUCCESS);
+    266          }
+    267          
+    268          /**
+    269            * @brief Set each @ref LL_GPIO_InitTypeDef field to default value.
+    270            * @param  GPIO_InitStruct pointer to a @ref LL_GPIO_InitTypeDef structure
+    271            *                          whose fields will be set to default values.
+    272            * @retval None
+    273            */
+    274          
+    275          void LL_GPIO_StructInit(LL_GPIO_InitTypeDef *GPIO_InitStruct)
+    276          {
+    277            /* Reset GPIO init structure parameters values */
+    278            GPIO_InitStruct->Pin        = LL_GPIO_PIN_ALL;
+    279            GPIO_InitStruct->Mode       = LL_GPIO_MODE_ANALOG;
+    280            GPIO_InitStruct->Speed      = LL_GPIO_SPEED_FREQ_LOW;
+    281            GPIO_InitStruct->OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    282            GPIO_InitStruct->Pull       = LL_GPIO_PULL_NO;
+    283            GPIO_InitStruct->Alternate  = LL_GPIO_AF_0;
+    284          }
+    285          
+    286          /**
+    287            * @}
+    288            */
+    289          
+    290          /**
+    291            * @}
+    292            */
+    293          
+    294          /**
+    295            * @}
+    296            */
+    297          
+    298          #endif /* defined (GPIOA) || defined (GPIOB) || defined (GPIOC) || defined (GPIOD) || defined (GPIOE) || defined (GPIOF) || defined (GPIOG) || defined (GPIOH) || defined (GPIOI) */
+    299          
+    300          /**
+    301            * @}
+    302            */
+    303          
+    304          #endif /* USE_FULL_LL_DRIVER */
+    305          
+    306          /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_AHB1_GRP1_ForceReset
+       0   LL_AHB1_GRP1_ReleaseReset
+       8   LL_GPIO_DeInit
+         8   -> LL_AHB1_GRP1_ForceReset
+         8   -> LL_AHB1_GRP1_ReleaseReset
+      24   LL_GPIO_Init
+        24   -> LL_GPIO_SetAFPin_0_7
+        24   -> LL_GPIO_SetAFPin_8_15
+        24   -> LL_GPIO_SetPinMode
+        24   -> LL_GPIO_SetPinOutputType
+        24   -> LL_GPIO_SetPinPull
+        24   -> LL_GPIO_SetPinSpeed
+       8   LL_GPIO_SetAFPin_0_7
+       8   LL_GPIO_SetAFPin_8_15
+       8   LL_GPIO_SetPinMode
+       0   LL_GPIO_SetPinOutputType
+       8   LL_GPIO_SetPinPull
+       8   LL_GPIO_SetPinSpeed
+       0   LL_GPIO_StructInit
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+       4  ??DataTable3_4
+       4  ??DataTable3_5
+       4  ??DataTable3_6
+       4  ??DataTable3_7
+       4  ??DataTable3_8
+       4  ??DataTable3_9
+      10  LL_AHB1_GRP1_ForceReset
+      12  LL_AHB1_GRP1_ReleaseReset
+     196  LL_GPIO_DeInit
+     136  LL_GPIO_Init
+      40  LL_GPIO_SetAFPin_0_7
+      46  LL_GPIO_SetAFPin_8_15
+      40  LL_GPIO_SetPinMode
+      12  LL_GPIO_SetPinOutputType
+      40  LL_GPIO_SetPinPull
+      40  LL_GPIO_SetPinSpeed
+      28  LL_GPIO_StructInit
+
+ 
+ 640 bytes in section .text
+ 
+ 640 bytes of CODE memory
+
+Errors: none
+Warnings: none

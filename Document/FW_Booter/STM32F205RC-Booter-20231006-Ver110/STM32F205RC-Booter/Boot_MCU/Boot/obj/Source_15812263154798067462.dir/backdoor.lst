@@ -1,0 +1,310 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:21
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\backdoor.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\backdoor.o.rsp
+#        (R:\STM32F205RC-Booter\Source\backdoor.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\backdoor.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\backdoor.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\backdoor.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\backdoor.c
+      1          /************************************************************************************//**
+      2          * \file         Source/backdoor.c
+      3          * \brief        Bootloader backdoor entry source file.
+      4          * \ingroup      Core
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2011  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          
+     34          
+     35          /****************************************************************************************
+     36          * Macro definitions
+     37          ****************************************************************************************/
+     38          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+     39          #ifndef BOOT_BACKDOOR_ENTRY_TIMEOUT_MS
+     40          /** \brief Sets the time in milliseconds that the backdoor is open, but allow an
+     41           *         override for this time. To change this value, simply add the macro
+     42           *         BOOT_BACKDOOR_ENTRY_TIMEOUT_MS to blt_conf.h with your desired backdoor 
+     43           *         open time in milliseconds.
+     44           */
+     45          #define BOOT_BACKDOOR_ENTRY_TIMEOUT_MS  (500)
+     46          #endif
+     47          #endif /* BOOT_BACKDOOR_HOOKS_ENABLE == 0 */
+     48          
+     49          
+     50          /****************************************************************************************
+     51          * Hook functions
+     52          ****************************************************************************************/
+     53          #if (BOOT_BACKDOOR_HOOKS_ENABLE > 0)
+     54          extern void BackDoorInitHook(void);
+     55          extern blt_bool BackDoorEntryHook(void);
+     56          #endif
+     57          
+     58          
+     59          /****************************************************************************************
+     60          * Local data declarations
+     61          ****************************************************************************************/
+     62          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+     63          /** \brief To determine if the backdoor is open or closed. */
+     64          static blt_bool backdoorOpen;
+     65          /** \brief To determine how long the backdoor has been open in milliseconds. */
+     66          static blt_int32u backdoorOpenTime;
+     67          /** \brief In certain scenarios it is desired to be able to extend the default backdoor
+     68           *         entry time at runtime. This variable holds the extension time in milliseconds.
+     69           *         Note that this value must be initialized to zero here and not in function
+     70           *         BackDoorInit(), because BackDoorInit() is one of the last functions called
+     71           *         in BootInit(). This order should not be changed otherwise there is a chance
+     72           *         that the timed backdoor partially or completely times out during BootInit().
+     73           *         Initializing the variable here, allows function BackDoorSetExtension() to be
+     74           *         called before BackDoorInit() was called.
+     75           */
+     76          static blt_int32u backdoorExtensionTime = 0;
+     77          #endif
+     78          
+     79          
+     80          /************************************************************************************//**
+     81          ** \brief     Initializes the backdoor entry option.
+     82          ** \return    none
+     83          **
+     84          ****************************************************************************************/
+     85          void BackDoorInit(void)
+     86          {
+     87          #if (BOOT_BACKDOOR_HOOKS_ENABLE > 0)
+     88            /* initialize application's backdoor functionality */
+     89            BackDoorInitHook();
+     90          
+     91            /* attempt to start the user program when no backdoor entry is requested */
+     92            if (BackDoorEntryHook() == BLT_FALSE)
+     93            {
+     94              /* this function does not return if a valid user program is present */
+     95              CpuStartUserProgram();
+     96            }
+     97          #if (BOOT_FILE_SYS_ENABLE > 0)
+     98            else
+     99            {
+    100              /* the backdoor is open so we should check if a update from locally  attached storage
+    101               * is requested and, if so, start it.
+    102               */
+    103              FileHandleFirmwareUpdateRequest();
+    104            }
+    105          #endif
+    106          #else
+    107            /* open the backdoor after a reset */
+    108            backdoorOpen = BLT_TRUE;
+    109            BackDoorRestartTimer();
+    110          #endif
+    111            /* perform the first check that open/closes the backdoor */
+    112            BackDoorCheck();
+    113          } /*** end of BackDoorInit ***/
+    114          
+    115          
+    116          /************************************************************************************//**
+    117          ** \brief     The default backdoor entry feature keeps the bootloader active for a
+    118          **            predetermined time after reset, allowing the host application to
+    119          **            establish a connection and start a programming sequence. This function
+    120          **            controls the opening/closing of the backdoor.
+    121          ** \return    none
+    122          **
+    123          ****************************************************************************************/
+    124          void BackDoorCheck(void)
+    125          {
+    126          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+    127          #if (BOOT_COM_ENABLE > 0)
+    128            /* check if a connection with the host was already established. in this case the
+    129             * backdoor stays open anyway, so no need to check if it needs to be closed.
+    130             */
+    131            if (ComIsConnected() == BLT_TRUE)
+    132            {
+    133              return;
+    134            }
+    135          #endif
+    136          #if (BOOT_FILE_SYS_ENABLE > 0)
+    137            /* check if the file module is busy, indicating that a firmware update through the
+    138             * locally attached storage is in progress. in this case the backdoor stays open
+    139             * anyway, so no need to check if it needs to be closed.
+    140             */
+    141            if (FileIsIdle() == BLT_FALSE)
+    142            {
+    143              return;
+    144            }
+    145          #endif
+    146          
+    147            /* when the backdoor is still open, check if it's time to close it */
+    148            if (backdoorOpen == BLT_TRUE)
+    149            {
+    150              /* check if the backdoor entry time window elapsed */
+    151              if (TimerGet() >= (BOOT_BACKDOOR_ENTRY_TIMEOUT_MS + backdoorExtensionTime + backdoorOpenTime))
+    152              {
+    153                /* close the backdoor */
+    154                backdoorOpen = BLT_FALSE;
+    155          #if (BOOT_FILE_SYS_ENABLE > 0)
+    156                /* during the timed backdoor no remote update request was detected. now do one
+    157                 * last check to see if a firmware update from locally attached storage is
+    158                 * pending.
+    159                 */
+    160                if (FileHandleFirmwareUpdateRequest() == BLT_FALSE)
+    161          #endif
+    162                {
+    163                  /* no firmware update requests detected, so attempt to start the user program.
+    164                   * this function does not return if a valid user program is present.
+    165                   */
+    166                  CpuStartUserProgram();
+    167                }
+    168              }
+    169            }
+    170          #endif
+    171          } /*** end of BackDoorCheck ***/
+    172          
+    173          
+    174          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+    175          /************************************************************************************//**
+    176          ** \brief     Sets the amount of milliseconds that the default backdoor timeout time
+    177          **            (BOOT_BACKDOOR_ENTRY_TIMEOUT_MS) is extended.
+    178          ** \param     extension_ms Extension time in milliseconds.
+    179          ** \return    none
+    180          **
+    181          ****************************************************************************************/
+    182          void BackDoorSetExtension(blt_int32u extension_ms)
+    183          {
+    184            /* update the extension time */
+    185            backdoorExtensionTime = extension_ms;
+    186          } /*** end of BackDoorSetExtension ***/
+    187          
+    188          
+    189          /************************************************************************************//**
+    190          ** \brief     Gets the amount of milliseconds that the default backdoor timeout time
+    191          **            (BOOT_BACKDOOR_ENTRY_TIMEOUT_MS) is extended.
+    192          ** \return    Extension time in milliseconds.
+    193          **
+    194          ****************************************************************************************/
+    195          blt_int32u BackDoorGetExtension(void)
+    196          {
+    197            /* read out and reutrn the currently configured extension time */
+    198            return backdoorExtensionTime;
+    199          } /*** end of BackDoorGetExtension ***/
+    200          
+    201          
+    202          /************************************************************************************//**
+    203          ** \brief     Restarts the timed backdoor timer. It uses the current system time as the
+    204          **            start time. The backdoor stays open for BOOT_BACKDOOR_ENTRY_TIMEOUT_MS
+    205          **            after this start time, possibly extended in case BackDoorSetExtension() was
+    206          **            called.
+    207          ** \return    none
+    208          **
+    209          ****************************************************************************************/
+    210          void BackDoorRestartTimer(void)
+    211          {
+    212            /* only restart the time if the backdoor is actually still open */
+    213            if (backdoorOpen == BLT_TRUE)
+    214            {
+    215              backdoorOpenTime = TimerGet();
+    216            }
+    217          } /*** end of BackDoorRestartTimer ***/
+    218          #endif /* BOOT_BACKDOOR_HOOKS_ENABLE == 0 */
+    219          
+    220          
+    221          /*********************************** end of backdoor.c *********************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   BackDoorCheck
+         8   -> ComIsConnected
+         8   -> CpuStartUserProgram
+         8   -> TimerGet
+       0   BackDoorGetExtension
+       8   BackDoorInit
+         8   -> BackDoorCheck
+         8   -> BackDoorRestartTimer
+       8   BackDoorRestartTimer
+         8   -> TimerGet
+       0   BackDoorSetExtension
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable4
+       4  ??DataTable4_1
+       4  ??DataTable4_2
+      50  BackDoorCheck
+       6  BackDoorGetExtension
+      18  BackDoorInit
+      20  BackDoorRestartTimer
+       6  BackDoorSetExtension
+       4  backdoorExtensionTime
+       1  backdoorOpen
+       4  backdoorOpenTime
+
+ 
+   9 bytes in section .bss
+ 112 bytes in section .text
+ 
+ 112 bytes of CODE memory
+   9 bytes of DATA memory
+
+Errors: none
+Warnings: none

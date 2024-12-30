@@ -1,0 +1,575 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\usb.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\usb.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\usb.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\usb.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\usb.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\usb.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\usb.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/usb.c
+      3          * \brief        Bootloader USB communication interface source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2023  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                     /* bootloader generic header     */
+     33          #if (BOOT_COM_USB_ENABLE > 0)
+     34          #include "usb.h"                                      /* USB bootloader driver         */
+     35          #include "usbd_core.h"                                /* USB driver core               */
+     36          #include "usbd_desc.h"                                /* USB driver descriptor         */
+     37          #include "usbd_bulk.h"                                /* USB driver bulk device        */
+     38          
+     39          
+     40          /****************************************************************************************
+     41          * Configuration macros
+     42          ****************************************************************************************/
+     43          /* For a USB bootloader, the backdoor needs to stay open long enough for the USB device
+     44           * to enumerate on the host PC. Therefore the default backdoor open time needs to be
+     45           * extended. Note that this won't be long enough for a first time USB driver install
+     46           * on the host PC. In this case the bootloader should be started with the backup backdoor
+     47           * that uses, for example, a digital input to force the bootloader to stay active. This
+     48           * can be implemented in CpuUserProgramStartHook(). Feel free to shorten/lengthen this
+     49           * time for finetuning. Note that adding this configuration macro to blt_conf.h overrides
+     50           * the value here.
+     51           */
+     52          #ifndef BOOT_COM_USB_BACKDOOR_EXTENSION_MS
+     53          #define BOOT_COM_USB_BACKDOOR_EXTENSION_MS   (2000)
+     54          #endif
+     55          
+     56          
+     57          /****************************************************************************************
+     58          * Macro definitions
+     59          ****************************************************************************************/
+     60          /** \brief Total number of fifo buffers. */
+     61          #define FIFO_MAX_BUFFERS         (2)
+     62          /** \brief Invalid value for a fifo buffer handle. */
+     63          #define FIFO_ERR_INVALID_HANDLE  (255)
+     64          /** \brief Number of bytes that fit in the fifo pipe. */
+     65          #define FIFO_PIPE_SIZE           (64)
+     66          
+     67          
+     68          /****************************************************************************************
+     69          * Type definitions
+     70          ****************************************************************************************/
+     71          /** \brief Structure type for fifo control. */
+     72          typedef struct t_fifo_ctrl
+     73          {
+     74            blt_int8u          *startptr;                    /**< pointer to start of buffer     */
+     75            blt_int8u          *endptr;                      /**< pointer to end of buffer       */
+     76            blt_int8u          *readptr;                     /**< pointer to next read location  */
+     77            blt_int8u          *writeptr;                    /**< pointer to next free location  */
+     78            blt_int8u           length;                      /**< number of buffer elements      */
+     79            blt_int8u           entries;                     /**< # of full buffer elements      */
+     80            blt_int8u           handle;                      /**< handle of the buffer           */
+     81            struct t_fifo_ctrl *fifoctrlptr;                 /**< pointer to free buffer control */
+     82          } tFifoCtrl;
+     83          
+     84          /** \brief Structure type for a fifo pipe. */
+     85          typedef struct
+     86          {
+     87            blt_int8u handle;                                /**< fifo handle                    */
+     88            blt_int8u data[FIFO_PIPE_SIZE];                  /**< fifo data buffer               */
+     89          } tFifoPipe;                                       /**< USB pipe fifo type             */
+     90          
+     91          
+     92          /****************************************************************************************
+     93          * Function prototypes
+     94          ****************************************************************************************/
+     95          static blt_bool  UsbReceiveByte(blt_int8u *data);
+     96          static blt_bool  UsbTransmitByte(blt_int8u data);
+     97          static void      UsbFifoMgrInit(void);
+     98          static blt_int8u UsbFifoMgrCreate(blt_int8u *buffer, blt_int8u length);
+     99          static blt_bool  UsbFifoMgrWrite(blt_int8u handle, blt_int8u data);
+    100          static blt_bool  UsbFifoMgrRead(blt_int8u handle, blt_int8u *data);
+    101          static blt_int8u UsbFifoMgrScan(blt_int8u handle);
+    102          
+    103          
+    104          /****************************************************************************************
+    105          * Local data declarations
+    106          ****************************************************************************************/
+    107          /** \brief Local variable that holds the fifo control structures. */
+    108          static tFifoCtrl  fifoCtrl[FIFO_MAX_BUFFERS];
+    109          /** \brief Local pointer that points to the next free fifo control structure. */
+    110          static tFifoCtrl *fifoCtrlFree;
+    111          /** \brief Fifo pipe used for the bulk in endpoint. */
+    112          static tFifoPipe  fifoPipeBulkIN;
+    113          /** \brief Fifo pipe used for the bulk out endpoint. */
+    114          static tFifoPipe  fifoPipeBulkOUT;
+    115          /** \brief USB device handle. */
+    116          static USBD_HandleTypeDef hUsbDeviceFS;
+    117          
+    118          
+    119          /************************************************************************************//**
+    120          ** \brief     Initializes the USB communication interface.
+    121          ** \return    none.
+    122          **
+    123          ****************************************************************************************/
+    124          void UsbInit(void)
+    125          {
+    126            /* initialize the FIFO manager */
+    127            UsbFifoMgrInit();
+    128            /* place 2 buffers under FIFO management */
+    129            fifoPipeBulkIN.handle  = UsbFifoMgrCreate(fifoPipeBulkIN.data,  FIFO_PIPE_SIZE);
+    130            fifoPipeBulkOUT.handle = UsbFifoMgrCreate(fifoPipeBulkOUT.data, FIFO_PIPE_SIZE);
+    131            /* validate fifo handles */
+    132            ASSERT_RT((fifoPipeBulkIN.handle  != FIFO_ERR_INVALID_HANDLE) && \
+    133                      (fifoPipeBulkOUT.handle != FIFO_ERR_INVALID_HANDLE));
+    134            /* initialize the USB device libary */
+    135            USBD_Init(&hUsbDeviceFS, &FS_Desc, DEVICE_FS);
+    136            /* register the bootloader's custom USB Bulk based class */
+    137            USBD_RegisterClass(&hUsbDeviceFS, &USBD_Bulk);
+    138            /* inform application about the connect event */
+    139            UsbConnectHook(BLT_TRUE);
+    140            /* start the USB device */
+    141            USBD_Start(&hUsbDeviceFS);
+    142            /* perform low level connect of the device */
+    143            HAL_PCD_DevConnect((PCD_HandleTypeDef *)hUsbDeviceFS.pData);
+    144            /* extend the time that the backdoor is open in case the default timed backdoor
+    145             * mechanism is used.
+    146             */
+    147          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+    148            if (BackDoorGetExtension() < BOOT_COM_USB_BACKDOOR_EXTENSION_MS)
+    149            {
+    150              BackDoorSetExtension(BOOT_COM_USB_BACKDOOR_EXTENSION_MS);
+    151            }
+    152          #endif /* BOOT_BACKDOOR_HOOKS_ENABLE == 0 */
+    153          } /*** end of UsbInit ***/
+    154          
+    155          
+    156          /************************************************************************************//**
+    157          ** \brief     Releases the USB communication interface.
+    158          ** \return    none.
+    159          **
+    160          ****************************************************************************************/
+    161          void UsbFree(void)
+    162          {
+    163            /* perform low level disconnect of the device */
+    164            HAL_PCD_DevDisconnect((PCD_HandleTypeDef *)hUsbDeviceFS.pData);
+    165            /* uninitialize the device */
+    166            USBD_DeInit(&hUsbDeviceFS);
+    167            /* inform application about the disconnect event */
+    168            UsbConnectHook(BLT_FALSE);
+    169          } /*** end of UsbFree ***/
+    170          
+    171          
+    172          /************************************************************************************//**
+    173          ** \brief     Transmits a packet formatted for the communication interface.
+    174          ** \param     data Pointer to byte array with data that it to be transmitted.
+    175          ** \param     len  Number of bytes that are to be transmitted.
+    176          ** \return    none.
+    177          **
+    178          ****************************************************************************************/
+    179          void UsbTransmitPacket(blt_int8u *data, blt_int8u len)
+    180          {
+    181            blt_int16u data_index;
+    182            blt_bool result;
+    183          
+    184            /* verify validity of the len-paramenter */
+    185            ASSERT_RT(len <= BOOT_COM_USB_TX_MAX_DATA);
+    186          
+    187            /* first transmit the length of the packet */
+    188            result = UsbTransmitByte(len);
+    189            ASSERT_RT(result == BLT_TRUE);
+    190          
+    191            /* transmit all the packet bytes one-by-one */
+    192            for (data_index = 0; data_index < len; data_index++)
+    193            {
+    194              /* keep the watchdog happy */
+    195              CopService();
+    196              /* write byte */
+    197              result = UsbTransmitByte(data[data_index]);
+    198              ASSERT_RT(result == BLT_TRUE);
+    199            }
+    200          } /*** end of UsbTransmitPacket ***/
+    201          
+    202          
+    203          /************************************************************************************//**
+    204          ** \brief     Receives a communication interface packet if one is present.
+    205          ** \param     data Pointer to byte array where the data is to be stored.
+    206          ** \param     len Pointer where the length of the packet is to be stored.
+    207          ** \return    BLT_TRUE if a packet was received, BLT_FALSE otherwise.
+    208          **
+    209          ****************************************************************************************/
+    210          blt_bool UsbReceivePacket(blt_int8u *data, blt_int8u *len)
+    211          {
+    212            static blt_int8u xcpCtoReqPacket[BOOT_COM_USB_RX_MAX_DATA+1];  /* one extra for length */
+    213            static blt_int8u xcpCtoRxLength;
+    214            static blt_bool  xcpCtoRxInProgress = BLT_FALSE;
+    215          
+    216            /* poll USB interrupt flags to process USB related events */
+    217            HAL_PCD_IRQHandler((PCD_HandleTypeDef *)hUsbDeviceFS.pData);
+    218          
+    219            /* start of cto packet received? */
+    220            if (xcpCtoRxInProgress == BLT_FALSE)
+    221            {
+    222              /* store the message length when received */
+    223              if (UsbReceiveByte(&xcpCtoReqPacket[0]) == BLT_TRUE)
+    224              {
+    225                if ( (xcpCtoReqPacket[0] > 0) &&
+    226                     (xcpCtoReqPacket[0] <= BOOT_COM_USB_RX_MAX_DATA) )
+    227                {
+    228                  /* indicate that a cto packet is being received */
+    229                  xcpCtoRxInProgress = BLT_TRUE;
+    230                  /* reset packet data count */
+    231                  xcpCtoRxLength = 0;
+    232                }
+    233              }
+    234            }
+    235            else
+    236            {
+    237              /* store the next packet byte */
+    238              if (UsbReceiveByte(&xcpCtoReqPacket[xcpCtoRxLength+1]) == BLT_TRUE)
+    239              {
+    240                /* increment the packet data count */
+    241                xcpCtoRxLength++;
+    242          
+    243                /* check to see if the entire packet was received */
+    244                if (xcpCtoRxLength == xcpCtoReqPacket[0])
+    245                {
+    246                  /* copy the packet data */
+    247                  CpuMemCopy((blt_int32u)data, (blt_int32u)&xcpCtoReqPacket[1], xcpCtoRxLength);
+    248                  /* done with cto packet reception */
+    249                  xcpCtoRxInProgress = BLT_FALSE;
+    250                  /* set the packet length */
+    251                  *len = xcpCtoRxLength;
+    252                  /* packet reception complete */
+    253                  return BLT_TRUE;
+    254                }
+    255              }
+    256            }
+    257            /* packet reception not yet complete */
+    258            return BLT_FALSE;
+    259          } /*** end of UsbReceivePacket ***/
+    260          
+    261          
+    262          /************************************************************************************//**
+    263          ** \brief     Receives a communication interface byte if one is present.
+    264          ** \param     data Pointer to byte where the data is to be stored.
+    265          ** \return    BLT_TRUE if a byte was received, BLT_FALSE otherwise.
+    266          **
+    267          ****************************************************************************************/
+    268          static blt_bool UsbReceiveByte(blt_int8u *data)
+    269          {
+    270            blt_bool result;
+    271          
+    272            /* obtain data from the fifo */
+    273            result = UsbFifoMgrRead(fifoPipeBulkOUT.handle, data);
+    274            return result;
+    275          } /*** end of UsbReceiveByte ***/
+    276          
+    277          
+    278          /************************************************************************************//**
+    279          ** \brief     Transmits a communication interface byte.
+    280          ** \param     data Value of byte that is to be transmitted.
+    281          ** \return    BLT_TRUE if the byte was transmitted, BLT_FALSE otherwise.
+    282          **
+    283          ****************************************************************************************/
+    284          static blt_bool UsbTransmitByte(blt_int8u data)
+    285          {
+    286            blt_bool result;
+    287          
+    288            /* write data from to fifo */
+    289            result = UsbFifoMgrWrite(fifoPipeBulkIN.handle, data);
+    290            return result;
+    291          } /*** end of UsbTransmitByte ***/
+    292          
+    293          
+    294          /************************************************************************************//**
+    295          ** \brief     Checks if there is still data left to transmit and if so submits it
+    296          **            for transmission with the USB endpoint.
+    297          ** \return    none.
+    298          **
+    299          ****************************************************************************************/
+    300          void UsbTransmitPipeBulkIN(void)
+    301          {
+    302            /* USB_Tx_Buffer is static for run-time optimalization */
+    303            static uint8_t USB_Tx_Buffer[BULK_DATA_MAX_PACKET_SIZE];
+    304            blt_int8u nr_of_bytes_for_tx_endpoint;
+    305            blt_int8u byte_counter;
+    306            blt_int8u byte_value;
+    307            blt_bool  result;
+    308          
+    309            /* read how many bytes should be transmitted */
+    310            nr_of_bytes_for_tx_endpoint = UsbFifoMgrScan(fifoPipeBulkIN.handle);
+    311            /* only continue if there is actually data left to transmit */
+    312            if (nr_of_bytes_for_tx_endpoint == 0)
+    313            {
+    314              return;
+    315            }
+    316            /* make sure to not transmit more than the USB endpoint can handle */
+    317            if (nr_of_bytes_for_tx_endpoint > BULK_DATA_MAX_PACKET_SIZE)
+    318            {
+    319              nr_of_bytes_for_tx_endpoint = BULK_DATA_MAX_PACKET_SIZE;
+    320            }
+    321            /* copy the transmit data to the transmit buffer */
+    322            for (byte_counter=0; byte_counter < nr_of_bytes_for_tx_endpoint; byte_counter++)
+    323            {
+    324              /* obtain data from the fifo */
+    325              result = UsbFifoMgrRead(fifoPipeBulkIN.handle, &byte_value);
+    326              ASSERT_RT(result == BLT_TRUE);
+    327              /* store it in the endpoint's RAM */
+    328              USB_Tx_Buffer[byte_counter] = byte_value;
+    329            }
+    330            /* copy data to endpoint's RAM and start the transmission */
+    331            USBD_LL_Transmit(&hUsbDeviceFS, BULK_IN_EP, &USB_Tx_Buffer[0],
+    332                             nr_of_bytes_for_tx_endpoint);
+    333          } /*** end of UsbTransmitPipeBulkIN ***/
+    334          
+    335          
+    336          /************************************************************************************//**
+    337          ** \brief     Stores data that was received on the Bulk OUT pipe in the fifo.
+    338          ** \return    none.
+    339          **
+    340          ****************************************************************************************/
+    341          void UsbReceivePipeBulkOUT(blt_int8u epnum)
+    342          {
+    343            blt_int16u USB_Rx_Cnt=0;
+    344            blt_int8u *usbRxBufferPtr;
+    345            blt_int16u byte_counter;
+    346            blt_bool result;
+    347          
+    348            /* Get the received data buffer and the number of received bytes */
+    349            usbRxBufferPtr = USBD_Bulk_GetRxBufferPtr();
+    350            USB_Rx_Cnt = USBD_LL_GetRxDataSize(&hUsbDeviceFS, epnum);
+    351          
+    352            /* USB data will be immediately processed, this allow next USB traffic being
+    353             * NAKed till the end of the USART Xfer
+    354             */
+    355            for (byte_counter=0; byte_counter<USB_Rx_Cnt; byte_counter++)
+    356            {
+    357              /* add the data to the fifo */
+    358              result = UsbFifoMgrWrite(fifoPipeBulkOUT.handle, usbRxBufferPtr[byte_counter]);
+    359              /* verify that the fifo wasn't full */
+    360              ASSERT_RT(result == BLT_TRUE);
+    361            }
+    362            /* Prepare Out endpoint to receive next packet */
+    363            USBD_LL_PrepareReceive(&hUsbDeviceFS,
+    364                                   BULK_OUT_EP,
+    365                                   USBD_Bulk_GetRxBufferPtr(),
+    366                                   BULK_DATA_FS_OUT_PACKET_SIZE);
+    367          } /*** end of UsbReceivePipeBulkOUT ***/
+    368          
+    369          
+    370          /************************************************************************************//**
+    371          ** \brief     Initializes the fifo manager. Each controlled fifo is assigned a
+    372          **            unique handle, which is the same as its index into fifoCtrl[]. Each
+    373          **            controlled fifo holds a pointer to the next free fifo control.
+    374          **            For the last fifo in fifoCtrl[] this one is set to a null-pointer as
+    375          **            an out of fifo control indicator. Function should be called once
+    376          **            before any of the other fifo management functions are called.
+    377          ** \return    none.
+    378          **
+    379          ****************************************************************************************/
+    380          static void UsbFifoMgrInit(void)
+    381          {
+    382            blt_int8u i;
+    383            tFifoCtrl *pbc1, *pbc2;
+    384          
+    385            pbc1 = &fifoCtrl[0];
+    386            pbc2 = &fifoCtrl[1];
+    387            /* assign fifo handles and pointer to next free fifo */
+    388            for (i = 0; i < (FIFO_MAX_BUFFERS - 1); i++)
+    389            {
+    390              pbc1->handle = i;
+    391              pbc1->fifoctrlptr = pbc2;
+    392              pbc1++;
+    393              pbc2++;
+    394            }
+    395            /* initialize handle for the last one and use null-pointer for the next free fifo  */
+    396            pbc1->handle = i;
+    397            pbc1->fifoctrlptr = (tFifoCtrl *)0;
+    398            fifoCtrlFree = &fifoCtrl[0];
+    399          } /*** end of UsbFifoMgrInit ***/
+    400          
+    401          
+    402          /************************************************************************************//**
+    403          ** \brief     Places a data storage array under fifo management control. A handle
+    404          **            for identifying the fifo in subsequent fifo management function
+    405          **            calls is returned, if successful.
+    406          ** \param     buffer Pointer to the first element in the data storage fifo.
+    407          ** \param     length Maximum number of data elements that can be stored in the fifo.
+    408          ** \return    Fifo handle if successfull, or FIFO_ERR_INVALID_HANDLE.
+    409          **
+    410          ****************************************************************************************/
+    411          static blt_int8u UsbFifoMgrCreate(blt_int8u *buffer, blt_int8u length)
+    412          {
+    413            tFifoCtrl *pbc;
+    414          
+    415            /* first determine if these is still a free fifo control available */
+    416            if (fifoCtrlFree == (tFifoCtrl *)0)
+    417            {
+    418              return FIFO_ERR_INVALID_HANDLE;
+    419            }
+    420            /* store pointer to free fifo and update pointer to next free one */
+    421            pbc = fifoCtrlFree;
+    422            fifoCtrlFree = pbc->fifoctrlptr;
+    423          
+    424            /* initialize the buffer control */
+    425            pbc->length = length;
+    426            pbc->readptr = buffer;
+    427            pbc->writeptr = buffer;
+    428            pbc->entries = 0;
+    429            pbc->startptr = buffer;
+    430            pbc->endptr = (blt_int8u *)(buffer + length - 1);
+    431          
+    432            /* return the handle to the successfully created fifo control */
+    433            return pbc->handle;
+    434          } /*** end of UsbFifoMgrCreate ***/
+    435          
+    436          
+    437          /************************************************************************************//**
+    438          ** \brief     Stores data in the fifo.
+    439          ** \param     handle Identifies the fifo to write data to.
+    440          ** \param     data   Pointer to the data that is to be written to the fifo.
+    441          ** \return    BLT_TRUE if the data was successfully stored in the fifo, BLT_FALSE
+    442          **            otherwise.
+    443          **
+    444          ****************************************************************************************/
+    445          static blt_bool UsbFifoMgrWrite(blt_int8u handle, blt_int8u data)
+    446          {
+    447            /* check the validity of the handle parameter */
+    448            ASSERT_RT(handle < FIFO_MAX_BUFFERS);
+    449            /* check if fifo is full */
+    450            if (fifoCtrl[handle].entries == fifoCtrl[handle].length)
+    451            {
+    452              return BLT_FALSE;
+    453            }
+    454            /* copy data to fifo */
+    455            *fifoCtrl[handle].writeptr = data;
+    456            /* data written so update number of entries */
+    457            fifoCtrl[handle].entries++;
+    458            /* update write pointer */
+    459            fifoCtrl[handle].writeptr++;
+    460            /* check end of fifo */
+    461            if (fifoCtrl[handle].writeptr > fifoCtrl[handle].endptr)
+    462            {
+    463              /* set write pointer to start of the cyclic fifo */
+    464              fifoCtrl[handle].writeptr = fifoCtrl[handle].startptr;
+    465            }
+    466            /* still here so all is okay */
+    467            return BLT_TRUE;
+    468          } /*** end of UsbFifoMgrWrite ***/
+    469          
+    470          
+    471          /************************************************************************************//**
+    472          ** \brief     Retrieves data from the fifo.
+    473          ** \param     handle Identifies the fifo to read data from.
+    474          ** \param     data   Pointer to where the read data is to be stored.
+    475          ** \return    BLT_TRUE if the data was successfully read from the fifo, BLT_FALSE
+    476          **            otherwise.
+    477          **
+    478          ****************************************************************************************/
+    479          static blt_bool UsbFifoMgrRead(blt_int8u handle, blt_int8u *data)
+    480          {
+    481            /* check the validity of the handle parameter */
+    482            ASSERT_RT(handle < FIFO_MAX_BUFFERS);
+    483            /* check if fifo is empty */
+    484            if (fifoCtrl[handle].entries == 0)
+    485            {
+    486              return BLT_FALSE;
+    487            }
+    488            /* read the data */
+    489            *data = *fifoCtrl[handle].readptr;
+    490            /* data read so update number of entries */
+    491            fifoCtrl[handle].entries--;
+    492            /* update read pointer */
+    493            fifoCtrl[handle].readptr++;
+    494            /* check end of fifo */
+    495            if (fifoCtrl[handle].readptr > fifoCtrl[handle].endptr)
+    496            {
+    497              /* set read pointer to start of the cyclic fifo */
+    498              fifoCtrl[handle].readptr = fifoCtrl[handle].startptr;
+    499            }
+    500            /* still here so all is good */
+    501            return BLT_TRUE;
+    502          } /*** end of UsbFifoMgrRead ***/
+    503          
+    504          
+    505          /************************************************************************************//**
+    506          ** \brief     Returns the number of data entries currently present in the fifo.
+    507          ** \param     handle Identifies the fifo that is to be scanned.
+    508          ** \return    Number of data entries in the fifo if successful, otherwise 0.
+    509          **
+    510          ****************************************************************************************/
+    511          static blt_int8u UsbFifoMgrScan(blt_int8u handle)
+    512          {
+    513            /* check the validity of the handle parameter */
+    514            ASSERT_RT(handle < FIFO_MAX_BUFFERS);
+    515            /* read and return the number of data entries */
+    516            return fifoCtrl[handle].entries;
+    517          } /*** end of UsbFifoMgrScan ***/
+    518          #endif /* BOOT_COM_USB_ENABLE > 0 */
+    519          
+    520          
+    521          /*********************************** end of usb.c **************************************/
+
+
+ 
+ 
+ 0 bytes of memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,95 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =
+#        R:\STM32F205RC-Booter\Source\third_party\fatfs\src\option\unicode.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir\unicode.o.rsp
+#        (R:\STM32F205RC-Booter\Source\third_party\fatfs\src\option\unicode.c
+#        -D USE_HAL_DRIVER -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir\unicode.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir\unicode.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_8849921791639881067.dir\unicode.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\third_party\fatfs\src\option\unicode.c
+      1          #include "../ff.h"
+      2          
+      3          #if _USE_LFN != 0
+      4          
+      5          #if   _CODE_PAGE == 932	/* Japanese Shift_JIS */
+      6          #include "cc932.c"
+      7          #elif _CODE_PAGE == 936	/* Simplified Chinese GBK */
+      8          #include "cc936.c"
+      9          #elif _CODE_PAGE == 949	/* Korean */
+     10          #include "cc949.c"
+     11          #elif _CODE_PAGE == 950	/* Traditional Chinese Big5 */
+     12          #include "cc950.c"
+     13          #else					/* Single Byte Character-Set */
+     14          #include "ccsbcs.c"
+     15          #endif
+     16          
+     17          #endif
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       4   ff_convert
+      16   ff_wtoupper
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable1
+       4  ??DataTable1_1
+       4  ??DataTable1_2
+     256  Tbl
+     500  cvt1
+     188  cvt2
+      90  ff_convert
+     178  ff_wtoupper
+
+ 
+ 944 bytes in section .rodata
+ 280 bytes in section .text
+ 
+ 280 bytes of CODE  memory
+ 944 bytes of CONST memory
+
+Errors: none
+Warnings: none

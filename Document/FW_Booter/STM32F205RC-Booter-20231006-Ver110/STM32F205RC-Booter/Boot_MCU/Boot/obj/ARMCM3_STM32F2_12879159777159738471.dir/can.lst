@@ -1,0 +1,815 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\can.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\can.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\can.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\can.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\can.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\can.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\can.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/can.c
+      3          * \brief        Bootloader CAN communication interface source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2016  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          
+     30          /****************************************************************************************
+     31          * Include files
+     32          ****************************************************************************************/
+     33          #include "boot.h"                                /* bootloader generic header          */
+     34          #if (BOOT_COM_CAN_ENABLE > 0)
+     35          #include "stm32f2xx.h"                           /* STM32 CPU and HAL header           */
+     36          #include "stm32f2xx_ll_rcc.h"                    /* STM32 LL RCC header                */
+     37          #include "stm32f2xx_ll_gpio.h"                   /* STM32 LL GPIO header               */
+     38          
+     39          
+     40          /****************************************************************************************
+     41          * Macro definitions
+     42          ****************************************************************************************/
+     43          /** \brief Timeout for transmitting a CAN message in milliseconds. */
+     44          #define CAN_MSG_TX_TIMEOUT_MS          (50u)
+     45          
+     46          
+     47          /* map the configured CAN channel index to the STM32's CAN peripheral */
+     48          #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+     49          /** \brief Set CAN base address to CAN1. */
+     50          #define CAN_CHANNEL   CAN1
+     51          #elif (BOOT_COM_CAN_CHANNEL_INDEX == 1)
+     52          /** \brief Set CAN base address to CAN2. */
+     53          #define CAN_CHANNEL   CAN2
+     54          #endif
+     55          
+     56          
+     57          /****************************************************************************************
+     58          * Type definitions
+     59          ****************************************************************************************/
+     60          /** \brief Structure type for grouping CAN bus timing related information. */
+     61          typedef struct t_can_bus_timing
+     62          {
+     63            blt_int8u tseg1;                                    /**< CAN time segment 1          */
+     64            blt_int8u tseg2;                                    /**< CAN time segment 2          */
+     65          } tCanBusTiming;
+     66          
+     67          
+     68          /****************************************************************************************
+     69          * Local constant declarations
+     70          ****************************************************************************************/
+     71          /** \brief CAN bittiming table for dynamically calculating the bittiming settings.
+     72           *  \details According to the CAN protocol 1 bit-time can be made up of between 8..25
+     73           *           time quanta (TQ). The total TQ in a bit is SYNC + TSEG1 + TSEG2 with SYNC
+     74           *           always being 1. The sample point is (SYNC + TSEG1) / (SYNC + TSEG1 + SEG2) *
+     75           *           100%. This array contains possible and valid time quanta configurations with
+     76           *           a sample point between 68..78%.
+     77           */
+     78          static const tCanBusTiming canTiming[] =
+     79          {
+     80            /*  TQ | TSEG1 | TSEG2 | SP  */
+     81            /* ------------------------- */
+     82            {  5, 2 },          /*   8 |   5   |   2   | 75% */
+     83            {  6, 2 },          /*   9 |   6   |   2   | 78% */
+     84            {  6, 3 },          /*  10 |   6   |   3   | 70% */
+     85            {  7, 3 },          /*  11 |   7   |   3   | 73% */
+     86            {  8, 3 },          /*  12 |   8   |   3   | 75% */
+     87            {  9, 3 },          /*  13 |   9   |   3   | 77% */
+     88            {  9, 4 },          /*  14 |   9   |   4   | 71% */
+     89            { 10, 4 },          /*  15 |  10   |   4   | 73% */
+     90            { 11, 4 },          /*  16 |  11   |   4   | 75% */
+     91            { 12, 4 },          /*  17 |  12   |   4   | 76% */
+     92            { 12, 5 },          /*  18 |  12   |   5   | 72% */
+     93            { 13, 5 },          /*  19 |  13   |   5   | 74% */
+     94            { 14, 5 },          /*  20 |  14   |   5   | 75% */
+     95            { 15, 5 },          /*  21 |  15   |   5   | 76% */
+     96            { 15, 6 },          /*  22 |  15   |   6   | 73% */
+     97            { 16, 6 },          /*  23 |  16   |   6   | 74% */
+     98            { 16, 7 },          /*  24 |  16   |   7   | 71% */
+     99            { 16, 8 }           /*  25 |  16   |   8   | 68% */
+    100          };
+    101          
+    102          
+    103          /****************************************************************************************
+    104          * Local data declarations
+    105          ****************************************************************************************/
+    106          /** \brief CAN handle to be used in API calls. */
+    107          static CAN_HandleTypeDef canHandle;
+    108          
+    109          
+    110          /************************************************************************************//**
+    111          ** \brief     Search algorithm to match the desired baudrate to a possible bus
+    112          **            timing configuration.
+    113          ** \param     baud The desired baudrate in kbps. Valid values are 10..1000.
+    114          ** \param     prescaler Pointer to where the value for the prescaler will be stored.
+    115          ** \param     tseg1 Pointer to where the value for TSEG2 will be stored.
+    116          ** \param     tseg2 Pointer to where the value for TSEG2 will be stored.
+    117          ** \return    BLT_TRUE if the CAN bustiming register values were found, BLT_FALSE
+    118          **            otherwise.
+    119          **
+    120          ****************************************************************************************/
+    121          static blt_bool CanGetSpeedConfig(blt_int16u baud, blt_int16u *prescaler,
+    122                                            blt_int8u *tseg1, blt_int8u *tseg2)
+    123          {
+    124            blt_int8u  cnt;
+    125            blt_int32u canClockFreqkHz;
+    126            LL_RCC_ClocksTypeDef rccClocks;
+    127          
+    128            /* read clock frequencies */
+    129            LL_RCC_GetSystemClocksFreq(&rccClocks);
+    130            /* store CAN peripheral clock speed in kHz */
+    131            canClockFreqkHz = rccClocks.PCLK1_Frequency / 1000u;
+    132          
+    133            /* loop through all possible time quanta configurations to find a match */
+    134            for (cnt=0; cnt < sizeof(canTiming)/sizeof(canTiming[0]); cnt++)
+    135            {
+    136              if ((canClockFreqkHz % (baud*(canTiming[cnt].tseg1+canTiming[cnt].tseg2+1))) == 0)
+    137              {
+    138                /* compute the prescaler that goes with this TQ configuration */
+    139                *prescaler = canClockFreqkHz/(baud*(canTiming[cnt].tseg1+canTiming[cnt].tseg2+1));
+    140          
+    141                /* make sure the prescaler is valid */
+    142                if ((*prescaler > 0) && (*prescaler <= 1024))
+    143                {
+    144                  /* store the bustiming configuration */
+    145                  *tseg1 = canTiming[cnt].tseg1;
+    146                  *tseg2 = canTiming[cnt].tseg2;
+    147                  /* found a good bus timing configuration */
+    148                  return BLT_TRUE;
+    149                }
+    150              }
+    151            }
+    152            /* could not find a good bus timing configuration */
+    153            return BLT_FALSE;
+    154          } /*** end of CanGetSpeedConfig ***/
+    155          
+    156          
+    157          /************************************************************************************//**
+    158          ** \brief     Initializes the CAN controller and synchronizes it to the CAN bus.
+    159          ** \return    none.
+    160          **
+    161          ****************************************************************************************/
+    162          
+    163          void CanInit_CAN1(void);
+    164          void CanInit_CAN2(void);
+    165          
+    166          void CanInit(void)
+    167          {
+    168            #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+    169                /** \brief Set CAN base address to CAN1. */
+    170                CanInit_CAN1();
+    171            #elif (BOOT_COM_CAN_CHANNEL_INDEX == 1)
+    172                /** \brief Set CAN base address to CAN2. */
+    173                CanInit_CAN2();
+    174            #endif 
+    175          }
+    176          
+    177          
+    178          
+    179           #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+    180          void CanInit_CAN1(void)
+    181          {
+    182            blt_int16u prescaler = 0;
+    183            blt_int8u  tseg1 = 0, tseg2 = 0;
+    184            CAN_FilterTypeDef filterConfig;
+    185            blt_int32u rxMsgId = BOOT_COM_CAN_RX_MSG_ID;
+    186            blt_int32u rxFilterId, rxFilterMask;
+    187            /* the current implementation supports CAN1 and 2. throw an assertion error in case a
+    188             * different CAN channel is configured.
+    189             */
+    190            ASSERT_CT((BOOT_COM_CAN_CHANNEL_INDEX == 0 || BOOT_COM_CAN_CHANNEL_INDEX == 1));
+    191            /* obtain bittiming configuration information. */
+    192            if (CanGetSpeedConfig(BOOT_COM_CAN_BAUDRATE/1000, &prescaler, &tseg1, &tseg2) == BLT_FALSE)
+    193            {
+    194              /* Incorrect configuration. The specified baudrate is not supported for the given
+    195               * clock configuration. Verify the following settings in blt_conf.h:
+    196               *   - BOOT_COM_CAN_BAUDRATE
+    197               *   - BOOT_CPU_XTAL_SPEED_KHZ
+    198               *   - BOOT_CPU_SYSTEM_SPEED_KHZ
+    199               */
+    200              ASSERT_RT(BLT_FALSE);
+    201            }
+    202          
+    203            /* set the CAN controller configuration. */
+    204            canHandle.Instance = CAN_CHANNEL;
+    205            canHandle.Init.TimeTriggeredMode = DISABLE;
+    206            canHandle.Init.AutoBusOff = DISABLE;
+    207            canHandle.Init.AutoWakeUp = DISABLE;
+    208            canHandle.Init.AutoRetransmission = ENABLE;
+    209            canHandle.Init.ReceiveFifoLocked = DISABLE;
+    210            canHandle.Init.TransmitFifoPriority = DISABLE;
+    211            canHandle.Init.Mode = CAN_MODE_NORMAL;
+    212            canHandle.Init.SyncJumpWidth = CAN_SJW_1TQ;
+    213            canHandle.Init.TimeSeg1 = ((blt_int32u)tseg1 - 1) << CAN_BTR_TS1_Pos;
+    214            canHandle.Init.TimeSeg2 = ((blt_int32u)tseg2 - 1) << CAN_BTR_TS2_Pos;
+    215            canHandle.Init.Prescaler = prescaler;
+    216            /* initialize the CAN controller. this only fails if the CAN controller hardware is
+    217             * faulty. no need to evaluate the return value as there is nothing we can do about
+    218             * a faulty CAN controller.
+    219             */
+    220            (void)HAL_CAN_Init(&canHandle);
+    221            /* determine the reception filter mask and id values such that it only leaves one
+    222             * CAN identifier through (BOOT_COM_CAN_RX_MSG_ID).
+    223             */
+    224            if ((rxMsgId & 0x80000000) == 0)
+    225            {
+    226              rxFilterId = rxMsgId << CAN_RI0R_STID_Pos;
+    227              rxFilterMask = (CAN_RI0R_STID_Msk) | CAN_RI0R_IDE;
+    228            }
+    229            else
+    230            {
+    231              /* negate the ID-type bit */
+    232              rxMsgId &= ~0x80000000;
+    233              rxFilterId = (rxMsgId << CAN_RI0R_EXID_Pos) | CAN_RI0R_IDE;
+    234              rxFilterMask = (CAN_RI0R_EXID_Msk) | CAN_RI0R_IDE;
+    235            }
+    236            /* configure the reception filter. note that the implementation of this function
+    237             * always returns HAL_OK, so no need to evaluate the return value.
+    238             */
+    239          #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+    240            /* filter 0 is the first filter assigned to the bxCAN master (CAN1) */
+    241            filterConfig.FilterBank = 0;
+    242          #else
+    243            /* filter 14 is the first filter assigned to the bxCAN slave (CAN2) */
+    244            filterConfig.FilterBank = 14;
+    245          #endif
+    246            
+    247            filterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    248            filterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    249            filterConfig.FilterIdHigh = (rxFilterId >> 16) & 0x0000FFFFu;
+    250            filterConfig.FilterIdLow = rxFilterId & 0x0000FFFFu;
+    251            filterConfig.FilterMaskIdHigh = (rxFilterMask >> 16) & 0x0000FFFFu;
+    252            filterConfig.FilterMaskIdLow = rxFilterMask & 0x0000FFFFu;
+    253            filterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+    254            filterConfig.FilterActivation = ENABLE;
+    255            /* select the start slave bank number (for CAN1). this configuration assigns filter
+    256             * banks 0..13 to CAN1 and 14..27 to CAN2.
+    257             */
+    258            filterConfig.SlaveStartFilterBank = 14;
+    259            (void)HAL_CAN_ConfigFilter(&canHandle, &filterConfig);
+    260            /* start the CAN peripheral. no need to evaluate the return value as there is nothing
+    261             * we can do about a faulty CAN controller. */
+    262            (void)HAL_CAN_Start(&canHandle);
+    263          } /*** end of CanInit ***/
+    264          #endif
+    265          
+    266          
+    267          #if (BOOT_COM_CAN_CHANNEL_INDEX == 1)
+    268          
+    269          #if 0
+    270          void CanInit_CAN2(void)
+    271          {
+    272            blt_int16u prescaler = 0;
+    273            blt_int8u  tseg1 = 0, tseg2 = 0;
+    274            CAN_FilterTypeDef filterConfig;
+    275            blt_int32u rxMsgId = BOOT_COM_CAN_RX_MSG_ID;
+    276            blt_int32u rxFilterId, rxFilterMask;
+    277            
+    278            /* the current implementation supports CAN1 and 2. throw an assertion error in case a
+    279             * different CAN channel is configured.
+    280             */
+    281            ASSERT_CT((BOOT_COM_CAN_CHANNEL_INDEX == 0 || BOOT_COM_CAN_CHANNEL_INDEX == 1));
+    282            /* obtain bittiming configuration information. */
+    283            if (CanGetSpeedConfig(BOOT_COM_CAN_BAUDRATE/1000, &prescaler, &tseg1, &tseg2) == BLT_FALSE)
+    284            {
+    285              /* Incorrect configuration. The specified baudrate is not supported for the given
+    286               * clock configuration. Verify the following settings in blt_conf.h:
+    287               *   - BOOT_COM_CAN_BAUDRATE
+    288               *   - BOOT_CPU_XTAL_SPEED_KHZ
+    289               *   - BOOT_CPU_SYSTEM_SPEED_KHZ
+    290               */
+    291              ASSERT_RT(BLT_FALSE);
+    292            }
+    293          
+    294            /* set the CAN controller configuration. */
+    295            canHandle.Instance = CAN_CHANNEL;
+    296            canHandle.Init.TimeTriggeredMode = DISABLE;
+    297            canHandle.Init.AutoBusOff = DISABLE;
+    298            canHandle.Init.AutoWakeUp = DISABLE;
+    299            canHandle.Init.AutoRetransmission = ENABLE;
+    300            canHandle.Init.ReceiveFifoLocked = DISABLE;
+    301            canHandle.Init.TransmitFifoPriority = DISABLE;
+    302            canHandle.Init.Mode = CAN_MODE_NORMAL;
+    303            canHandle.Init.SyncJumpWidth = CAN_SJW_1TQ;
+    304            canHandle.Init.TimeSeg1 = ((blt_int32u)tseg1 - 1) << CAN_BTR_TS1_Pos;
+    305            canHandle.Init.TimeSeg2 = ((blt_int32u)tseg2 - 1) << CAN_BTR_TS2_Pos;
+    306            canHandle.Init.Prescaler = prescaler;
+    307            /* initialize the CAN controller. this only fails if the CAN controller hardware is
+    308             * faulty. no need to evaluate the return value as there is nothing we can do about
+    309             * a faulty CAN controller.
+    310             */
+    311            (void)HAL_CAN_Init(&canHandle);
+    312            
+    313            
+    314            /* determine the reception filter mask and id values such that it only leaves one
+    315             * CAN identifier through (BOOT_COM_CAN_RX_MSG_ID).
+    316             */
+    317            if ((rxMsgId & 0x80000000) == 0)
+    318            {
+    319              rxFilterId = rxMsgId << CAN_RI1R_STID_Pos;
+    320              rxFilterMask = (CAN_RI1R_STID_Msk) | CAN_RI1R_IDE;
+    321            }
+    322            else
+    323            {
+    324              /* negate the ID-type bit */
+    325              rxMsgId &= ~0x80000000;
+    326              rxFilterId = (rxMsgId << CAN_RI1R_EXID_Pos) | CAN_RI1R_IDE;
+    327              rxFilterMask = (CAN_RI1R_EXID_Msk) | CAN_RI1R_IDE;
+    328            }
+    329            /* configure the reception filter. note that the implementation of this function
+    330             * always returns HAL_OK, so no need to evaluate the return value.
+    331             */
+    332          #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+    333            /* filter 0 is the first filter assigned to the bxCAN master (CAN1) */
+    334            filterConfig.FilterBank = 0;
+    335          #else
+    336            /* filter 14 is the first filter assigned to the bxCAN slave (CAN2) */
+    337            filterConfig.FilterBank = 0;
+    338          #endif
+    339            /* select the start slave bank number (for CAN1). this configuration assigns filter
+    340             * banks 0..13 to CAN1 and 14..27 to CAN2.
+    341             */
+    342            filterConfig.SlaveStartFilterBank = 14;
+    343            
+    344            filterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    345            filterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    346            filterConfig.FilterIdHigh = (rxFilterId >> 16) & 0x0000FFFFu;
+    347            filterConfig.FilterIdLow = rxFilterId & 0x0000FFFFu;
+    348            filterConfig.FilterMaskIdHigh = (rxFilterMask >> 16) & 0x0000FFFFu;
+    349            filterConfig.FilterMaskIdLow = rxFilterMask & 0x0000FFFFu;
+    350            filterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+    351            filterConfig.FilterActivation = ENABLE;
+    352            
+    353            
+    354            (void)HAL_CAN_ConfigFilter(&canHandle, &filterConfig);
+    355            /* start the CAN peripheral. no need to evaluate the return value as there is nothing
+    356             * we can do about a faulty CAN controller. */
+    357            (void)HAL_CAN_Start(&canHandle);
+    358          } /*** end of CanInit ***/
+    359          #endif
+    360          
+    361          void CanInit_CAN2(void)
+    362          {
+    363            blt_int16u prescaler = 0;
+    364            blt_int8u  tseg1 = 0, tseg2 = 0;
+    365            CAN_FilterTypeDef filterConfig;
+    366            blt_int32u rxMsgId = BOOT_COM_CAN_RX_MSG_ID;      // #define BOOT_COM_CAN_RX_MSG_ID          (0x667 /*| 0x80000000*/)
+    367            blt_int32u rxFilterId, rxFilterMask;
+    368            
+    369            /* the current implementation supports CAN1 and 2. throw an assertion error in case a
+    370             * different CAN channel is configured.
+    371             */
+    372            ASSERT_CT((BOOT_COM_CAN_CHANNEL_INDEX == 0 || BOOT_COM_CAN_CHANNEL_INDEX == 1));
+    373            /* obtain bittiming configuration information. */
+    374            if (CanGetSpeedConfig(BOOT_COM_CAN_BAUDRATE/1000, &prescaler, &tseg1, &tseg2) == BLT_FALSE)
+    375            {
+    376              /* Incorrect configuration. The specified baudrate is not supported for the given
+    377               * clock configuration. Verify the following settings in blt_conf.h:
+    378               *   - BOOT_COM_CAN_BAUDRATE
+    379               *   - BOOT_CPU_XTAL_SPEED_KHZ
+    380               *   - BOOT_CPU_SYSTEM_SPEED_KHZ
+    381               */
+    382              ASSERT_RT(BLT_FALSE);
+    383            }
+    384          
+    385            /* set the CAN controller configuration. */
+    386            canHandle.Instance = CAN_CHANNEL;
+    387            canHandle.Init.TimeTriggeredMode = DISABLE;
+    388            canHandle.Init.AutoBusOff = DISABLE;
+    389            canHandle.Init.AutoWakeUp = DISABLE;
+    390            canHandle.Init.AutoRetransmission = ENABLE;
+    391            canHandle.Init.ReceiveFifoLocked = DISABLE;
+    392            canHandle.Init.TransmitFifoPriority = DISABLE;
+    393            canHandle.Init.Mode = CAN_MODE_NORMAL;
+    394            canHandle.Init.SyncJumpWidth = CAN_SJW_1TQ;
+    395            canHandle.Init.TimeSeg1 = ((blt_int32u)tseg1 - 1) << CAN_BTR_TS1_Pos;
+    396            canHandle.Init.TimeSeg2 = ((blt_int32u)tseg2 - 1) << CAN_BTR_TS2_Pos;
+    397            canHandle.Init.Prescaler = prescaler;
+    398            /* initialize the CAN controller. this only fails if the CAN controller hardware is
+    399             * faulty. no need to evaluate the return value as there is nothing we can do about
+    400             * a faulty CAN controller.
+    401             */
+    402            (void)HAL_CAN_Init(&canHandle);
+    403            
+    404            
+    405            /* determine the reception filter mask and id values such that it only leaves one
+    406             * CAN identifier through (BOOT_COM_CAN_RX_MSG_ID).
+    407             */
+    408            if ((rxMsgId & 0x80000000) == 0)
+    409            {
+    410              rxFilterId = rxMsgId << CAN_RI1R_STID_Pos;
+    411              rxFilterMask = (CAN_RI1R_STID_Msk) | CAN_RI1R_IDE;
+    412            }
+    413            else
+    414            {
+    415              /* negate the ID-type bit */
+    416              rxMsgId &= ~0x80000000;
+    417              rxFilterId = (rxMsgId << CAN_RI1R_EXID_Pos) | CAN_RI1R_IDE;
+    418              rxFilterMask = (CAN_RI1R_EXID_Msk) | CAN_RI1R_IDE;
+    419            }
+    420            /* configure the reception filter. note that the implementation of this function
+    421             * always returns HAL_OK, so no need to evaluate the return value.
+    422             */
+    423          #if (BOOT_COM_CAN_CHANNEL_INDEX == 0)
+    424            /* filter 0 is the first filter assigned to the bxCAN master (CAN1) */
+    425            filterConfig.FilterBank = 0;
+    426          #else
+    427            /* filter 14 is the first filter assigned to the bxCAN slave (CAN2) */
+    428            filterConfig.FilterBank = 14;
+    429            // CAN2의 FilterBank시작 위치, CAN2를 사용한다면 FilterBank를 SlaveStartFilterBank보다 크게 설정해야 함.
+    430          
+    431          #endif
+    432            /* select the start slave bank number (for CAN1). this configuration assigns filter
+    433             * banks 0..13 to CAN1 and 14..27 to CAN2.
+    434             */
+    435            filterConfig.SlaveStartFilterBank = 14;
+    436            
+    437            filterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
+    438            filterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
+    439            filterConfig.FilterIdHigh = 0x0000;
+    440            filterConfig.FilterIdLow = 0x0000;
+    441            filterConfig.FilterMaskIdHigh = 0x0000;  // 0x00000000 = 모든 ID를 받아들이겠다
+    442            filterConfig.FilterMaskIdLow = 0x0000;     
+    443            filterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
+    444            filterConfig.FilterActivation = ENABLE;
+    445            
+    446            
+    447            (void)HAL_CAN_ConfigFilter(&canHandle, &filterConfig);
+    448            /* start the CAN peripheral. no need to evaluate the return value as there is nothing
+    449             * we can do about a faulty CAN controller. */
+    450            (void)HAL_CAN_Start(&canHandle);
+    451          } /*** end of CanInit ***/
+    452          
+    453          #endif
+    454          
+    455          
+    456          /************************************************************************************//**
+    457          ** \brief     Transmits a packet formatted for the communication interface.
+    458          ** \param     data Pointer to byte array with data that it to be transmitted.
+    459          ** \param     len  Number of bytes that are to be transmitted.
+    460          ** \return    none.
+    461          **
+    462          ****************************************************************************************/
+    463          void CanTransmitPacket(blt_int8u *data, blt_int8u len)
+    464          {
+    465            blt_int32u txMsgId = BOOT_COM_CAN_TX_MSG_ID;      // #define BOOT_COM_CAN_TX_MSG_ID          (0x7E1  /*| 0x80000000*/)
+    466            CAN_TxHeaderTypeDef txMsgHeader;
+    467            blt_int32u txMsgMailbox;
+    468            blt_int32u timeout;
+    469            HAL_StatusTypeDef txStatus;
+    470          
+    471            /* configure the message that should be transmitted. */
+    472            if ((txMsgId & 0x80000000) == 0)
+    473            {
+    474              /* set the 11-bit CAN identifier. */
+    475              txMsgHeader.StdId = txMsgId;
+    476              txMsgHeader.IDE = CAN_ID_STD;
+    477            }
+    478            else
+    479            {
+    480              /* negate the ID-type bit */
+    481              txMsgId &= ~0x80000000;
+    482              /* set the 29-bit CAN identifier. */
+    483              txMsgHeader.ExtId = txMsgId;
+    484              txMsgHeader.IDE = CAN_ID_EXT;
+    485            }
+    486            txMsgHeader.RTR = CAN_RTR_DATA;
+    487            txMsgHeader.DLC = len;
+    488          
+    489            /* submit the message for transmission. */
+    490            txStatus = HAL_CAN_AddTxMessage(&canHandle, &txMsgHeader, data,
+    491                                            (uint32_t *)&txMsgMailbox);
+    492            if (txStatus == HAL_OK)
+    493            {
+    494              /* determine timeout time for the transmit completion. */
+    495              timeout = TimerGet() + CAN_MSG_TX_TIMEOUT_MS;
+    496              /* poll for completion of the transmit operation. */
+    497              while (HAL_CAN_IsTxMessagePending(&canHandle, txMsgMailbox) != 0)
+    498              {
+    499                /* service the watchdog. */
+    500                CopService();
+    501                /* break loop upon timeout. this would indicate a hardware failure or no other
+    502                 * nodes connected to the bus.
+    503                 */
+    504                if (TimerGet() > timeout)
+    505                {
+    506                  break;
+    507                }
+    508              }
+    509            }
+    510          } /*** end of CanTransmitPacket ***/
+    511          
+    512          void CanTransmitPacket_StdId(blt_int8u *data, blt_int8u len)
+    513          {
+    514            blt_int32u txMsgId = BOOT_COM_CAN_TX_MSG_ID;      // #define BOOT_COM_CAN_TX_MSG_ID          (0x7E1  /*| 0x80000000*/)
+    515            CAN_TxHeaderTypeDef txMsgHeader;
+    516            blt_int32u txMsgMailbox;
+    517            blt_int32u timeout;
+    518            HAL_StatusTypeDef txStatus;
+    519          
+    520            /* configure the message that should be transmitted. */
+    521            /* set the 11-bit CAN identifier. */
+    522            txMsgHeader.StdId = txMsgId;
+    523            txMsgHeader.IDE = CAN_ID_STD;
+    524            txMsgHeader.RTR = CAN_RTR_DATA;
+    525            txMsgHeader.DLC = len;
+    526          
+    527            /* submit the message for transmission. */
+    528            txStatus = HAL_CAN_AddTxMessage(&canHandle, &txMsgHeader, data,
+    529                                            (uint32_t *)&txMsgMailbox);
+    530            if (txStatus == HAL_OK)
+    531            {
+    532              /* determine timeout time for the transmit completion. */
+    533              timeout = TimerGet() + CAN_MSG_TX_TIMEOUT_MS;
+    534              /* poll for completion of the transmit operation. */
+    535              while (HAL_CAN_IsTxMessagePending(&canHandle, txMsgMailbox) != 0)
+    536              {
+    537                /* service the watchdog. */
+    538                CopService();
+    539                /* break loop upon timeout. this would indicate a hardware failure or no other
+    540                 * nodes connected to the bus.
+    541                 */
+    542                if (TimerGet() > timeout)
+    543                {
+    544                  break;
+    545                }
+    546              }
+    547            }
+    548          } /*** end of CanTransmitPacket ***/
+    549          
+    550          void CanTransmitPacket_ExtId(blt_int8u *data, blt_int8u len)
+    551          {
+    552            blt_int32u txMsgId = BOOT_COM_CAN_TX_MSG_ID;      // #define BOOT_COM_CAN_TX_MSG_ID          (0x7E1  /*| 0x80000000*/)
+    553            CAN_TxHeaderTypeDef txMsgHeader;
+    554            blt_int32u txMsgMailbox;
+    555            blt_int32u timeout;
+    556            HAL_StatusTypeDef txStatus;
+    557          
+    558            /* configure the message that should be transmitted. */
+    559            /* set the 29-bit CAN identifier. */
+    560            txMsgHeader.ExtId = txMsgId;
+    561            txMsgHeader.IDE = CAN_ID_EXT;
+    562            txMsgHeader.RTR = CAN_RTR_DATA;
+    563            txMsgHeader.DLC = len;
+    564          
+    565            /* submit the message for transmission. */
+    566            txStatus = HAL_CAN_AddTxMessage(&canHandle, &txMsgHeader, data,
+    567                                            (uint32_t *)&txMsgMailbox);
+    568            if (txStatus == HAL_OK)
+    569            {
+    570              /* determine timeout time for the transmit completion. */
+    571              timeout = TimerGet() + CAN_MSG_TX_TIMEOUT_MS;
+    572              /* poll for completion of the transmit operation. */
+    573              while (HAL_CAN_IsTxMessagePending(&canHandle, txMsgMailbox) != 0)
+    574              {
+    575                /* service the watchdog. */
+    576                CopService();
+    577                /* break loop upon timeout. this would indicate a hardware failure or no other
+    578                 * nodes connected to the bus.
+    579                 */
+    580                if (TimerGet() > timeout)
+    581                {
+    582                  break;
+    583                }
+    584              }
+    585            }
+    586          } /*** end of CanTransmitPacket ***/
+    587          
+    588          
+    589          
+    590          /************************************************************************************//**
+    591          ** \brief     Receives a communication interface packet if one is present.
+    592          ** \param     data Pointer to byte array where the data is to be stored.
+    593          ** \param     len Pointer where the length of the packet is to be stored.
+    594          ** \return    BLT_TRUE is a packet was received, BLT_FALSE otherwise.
+    595          **
+    596          ****************************************************************************************/
+    597          
+    598          blt_bool CanReceivePacket(blt_int8u *data, blt_int8u *len)
+    599          {
+    600              blt_int32u rxMsgId = BOOT_COM_CAN_RX_MSG_ID;
+    601              blt_bool result = BLT_FALSE;
+    602              CAN_RxHeaderTypeDef rxMsgHeader;
+    603              HAL_StatusTypeDef canRdFlag;
+    604              static blt_int32u disCnt = 0;
+    605              
+    606              canRdFlag = HAL_CAN_GetRxMessage(&canHandle, CAN_RX_FIFO0, &rxMsgHeader, data);
+    607          
+    608              //if (HAL_CAN_GetRxMessage(&canHandle, CAN_RX_FIFO0, &rxMsgHeader, data) == HAL_OK)
+    609              if (canRdFlag == HAL_OK)
+    610              {
+    611                  /* check if this message has the configured CAN packet identifier. */    
+    612                  #if 1
+    613                  /* was an 11-bit CAN message received that matches? */
+    614                  if ( (rxMsgHeader.StdId == rxMsgId) && (rxMsgHeader.IDE == CAN_ID_STD) )
+    615                  {
+    616                      /* set flag that a packet with a matching CAN identifier was received. */
+    617                      result = BLT_TRUE;
+    618                      void Test_FFF(blt_int8u data);
+    619                      LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+    620                      if ( !(++disCnt % 20)) Test_FFF('.');
+    621                  }
+    622                  else
+    623                  {
+    624                      /* was an 29-bit CAN message received that matches? */
+    625                      if ( (rxMsgHeader.ExtId == rxMsgId) && (rxMsgHeader.IDE == CAN_ID_EXT) )
+    626                      {
+    627                          /* set flag that a packet with a matching CAN identifier was received. */
+    628                          result = BLT_TRUE;
+    629                          void Test_FFF(blt_int8u data);
+    630                          LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+    631                          if ( !(++disCnt % 20)) Test_FFF('`');
+    632                      }       
+    633                  }
+    634                  #endif
+    635                  
+    636                  /* store the data length. */
+    637                  if (result == BLT_TRUE)
+    638                  {
+    639                      *len = rxMsgHeader.DLC;
+    640                  }
+    641              }
+    642              
+    643              /* Give the result back to the caller. */
+    644              return result;
+    645              
+    646          } /*** end of CanReceivePacket ***/
+    647          
+    648          
+    649          
+    650          #if 0
+    651          blt_bool CanReceivePacket(blt_int8u *data, blt_int8u *len)
+    652          {
+    653              blt_int32u rxMsgId = BOOT_COM_CAN_RX_MSG_ID;
+    654              blt_bool result = BLT_FALSE;
+    655              CAN_RxHeaderTypeDef rxMsgHeader;
+    656              
+    657              if (HAL_CAN_GetRxMessage(&canHandle, CAN_RX_FIFO0, &rxMsgHeader, data) == HAL_OK)
+    658              { 
+    659                  /* check if this message has the configured CAN packet identifier. */    
+    660          
+    661                  /* was an 11-bit CAN message received that matches? */
+    662                  if ( (rxMsgHeader.StdId == rxMsgId) &&
+    663                     (rxMsgHeader.IDE == CAN_ID_STD) )
+    664                  {
+    665                      /* set flag that a packet with a matching CAN identifier was received. */
+    666                      result = BLT_TRUE;
+    667                  }
+    668                  else
+    669                  {
+    670                      /* was an 29-bit CAN message received that matches? */
+    671                      if ( (rxMsgHeader.ExtId == rxMsgId) &&
+    672                       (rxMsgHeader.IDE == CAN_ID_EXT) )
+    673                      {
+    674                          /* set flag that a packet with a matching CAN identifier was received. */
+    675                          result = BLT_TRUE;
+    676                      }       
+    677                  }
+    678                  
+    679                  /* store the data length. */
+    680                  if (result == BLT_TRUE)
+    681                  {
+    682                      *len = rxMsgHeader.DLC;
+    683                  }
+    684              }
+    685              
+    686              /* Give the result back to the caller. */
+    687              return result;
+    688              
+    689          } /*** end of CanReceivePacket ***/
+    690          #endif
+    691          
+    692          #endif /* BOOT_COM_CAN_ENABLE > 0 */
+    693          
+    694          
+    695          /*********************************** end of can.c **************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      40   CanGetSpeedConfig
+        40   -> LL_RCC_GetSystemClocksFreq
+       8   CanInit
+         8   -> CanInit_CAN2
+      56   CanInit_CAN2
+        56   -> AssertFailure
+        56   -> CanGetSpeedConfig
+        56   -> HAL_CAN_ConfigFilter
+        56   -> HAL_CAN_Init
+        56   -> HAL_CAN_Start
+      48   CanReceivePacket
+        48   -> HAL_CAN_GetRxMessage
+        48   -> LL_GPIO_ResetOutputPin
+        48   -> Test_FFF
+      40   CanTransmitPacket
+        40   -> CopService
+        40   -> HAL_CAN_AddTxMessage
+        40   -> HAL_CAN_IsTxMessagePending
+        40   -> TimerGet
+      40   CanTransmitPacket_ExtId
+        40   -> CopService
+        40   -> HAL_CAN_AddTxMessage
+        40   -> HAL_CAN_IsTxMessagePending
+        40   -> TimerGet
+      40   CanTransmitPacket_StdId
+        40   -> CopService
+        40   -> HAL_CAN_AddTxMessage
+        40   -> HAL_CAN_IsTxMessagePending
+        40   -> TimerGet
+       0   LL_GPIO_ResetOutputPin
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable6
+       4  ??DataTable6_1
+       4  ??DataTable6_2
+       4  ??DataTable6_3
+       4  ??DataTable6_4
+       4  ??DataTable6_5
+       4  ??DataTable6_6
+       4  ??DataTable6_7
+      52  ?_0
+     178  CanGetSpeedConfig
+       8  CanInit
+     206  CanInit_CAN2
+     156  CanReceivePacket
+      94  CanTransmitPacket
+      78  CanTransmitPacket_ExtId
+      78  CanTransmitPacket_StdId
+       6  LL_GPIO_ResetOutputPin
+      40  canHandle
+      36  canTiming
+       4  disCnt
+
+ 
+  44 bytes in section .bss
+  88 bytes in section .rodata
+ 836 bytes in section .text
+ 
+ 836 bytes of CODE  memory
+  88 bytes of CONST memory
+  44 bytes of DATA  memory
+
+Errors: none
+Warnings: 2

@@ -1,0 +1,15 @@
+"C:\Program Files\IAR Systems\Embedded Workbench 9.4\arm\bin\armPROC.dll" 
+
+"C:\Program Files\IAR Systems\Embedded Workbench 9.4\arm\bin\armSTLINK.dll" 
+
+"R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\bin\openblt_stm32f205.out" 
+
+--plugin="C:\Program Files\IAR Systems\Embedded Workbench 9.4\arm\bin\armbat.dll" 
+
+--device_macro="C:\Program Files\IAR Systems\Embedded Workbench 9.4\arm/config/debugger/ST/STM32F2xx.dmac" 
+
+--flash_loader="C:\Program Files\IAR Systems\Embedded Workbench 9.4\arm/config/flashloader/ST/FlashSTM32F205xC.board" 
+
+
+
+

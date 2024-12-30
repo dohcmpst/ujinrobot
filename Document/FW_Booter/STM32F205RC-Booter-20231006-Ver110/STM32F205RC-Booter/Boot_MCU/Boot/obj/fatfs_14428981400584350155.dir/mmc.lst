@@ -1,0 +1,942 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:17
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\fatfs\mmc.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir\mmc.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\fatfs\mmc.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir\mmc.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir\mmc.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\fatfs_14428981400584350155.dir\mmc.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\fatfs\mmc.c
+      1          /*------------------------------------------------------------------------/
+      2          /  MMCv3/SDv1/SDv2 (in SPI mode) control module
+      3          /-------------------------------------------------------------------------/
+      4          /
+      5          /  Copyright (C) 2013, ChaN, all right reserved.
+      6          /
+      7          / * This software is a free software and there is NO WARRANTY.
+      8          / * No restriction on use. You can use, modify and redistribute it for
+      9          /   personal, non-profit or commercial products UNDER YOUR RESPONSIBILITY.
+     10          / * Redistributions of source code must retain the above copyright notice.
+     11          /
+     12          /-------------------------------------------------------------------------*/
+     13          
+     14          
+     15          /*
+     16           * This file was modified from a sample available from the FatFs
+     17           * web site. It was modified to work with a Olimex STM32-P207
+     18           * evaluation board.
+     19           *
+     20           */
+     21          #include "diskio.h"
+     22          #include "stm32f2xx.h"                           /* STM32 registers and drivers        */
+     23          #include "stm32f2xx_ll_bus.h"                    /* STM32 LL BUS header                */
+     24          #include "stm32f2xx_ll_gpio.h"                   /* STM32 LL GPIO header               */
+     25          #include "stm32f2xx_ll_spi.h"                    /* STM32 LL SPI header                */
+     26          #include "boot.h"
+     27          
+     28          
+     29          /*--------------------------------------------------------------------------
+     30          
+     31             Macro Definitions
+     32          
+     33          ---------------------------------------------------------------------------*/
+     34          /* MMC card type flags (MMC_GET_TYPE) */
+     35          #define CT_MMC		0x01		/* MMC ver 3 */
+     36          #define CT_SD1		0x02		/* SD ver 1 */
+     37          #define CT_SD2		0x04		/* SD ver 2 */
+     38          #define CT_SDC		(CT_SD1|CT_SD2)	/* SD */
+     39          #define CT_BLOCK	0x08		/* Block addressing */
+     40          
+     41          
+     42          /*--------------------------------------------------------------------------
+     43          
+     44             Module Private Functions
+     45          
+     46          ---------------------------------------------------------------------------*/
+     47          
+     48          /* Definitions for MMC/SDC command */
+     49          #define CMD0   (0)			/* GO_IDLE_STATE */
+     50          #define CMD1   (1)			/* SEND_OP_COND */
+     51          #define ACMD41 (41|0x80)	/* SEND_OP_COND (SDC) */
+     52          #define CMD8   (8)			/* SEND_IF_COND */
+     53          #define CMD9   (9)			/* SEND_CSD */
+     54          #define CMD10  (10)			/* SEND_CID */
+     55          #define CMD12  (12)			/* STOP_TRANSMISSION */
+     56          #define ACMD13 (13|0x80)	/* SD_STATUS (SDC) */
+     57          #define CMD16  (16)			/* SET_BLOCKLEN */
+     58          #define CMD17  (17)			/* READ_SINGLE_BLOCK */
+     59          #define CMD18  (18)			/* READ_MULTIPLE_BLOCK */
+     60          #define CMD23  (23)			/* SET_BLOCK_COUNT */
+     61          #define ACMD23 (23|0x80)	/* SET_WR_BLK_ERASE_COUNT (SDC) */
+     62          #define CMD24  (24)			/* WRITE_BLOCK */
+     63          #define CMD25  (25)			/* WRITE_MULTIPLE_BLOCK */
+     64          #define CMD41  (41)			/* SEND_OP_COND (ACMD) */
+     65          #define CMD55  (55)			/* APP_CMD */
+     66          #define CMD58  (58)			/* READ_OCR */
+     67          
+     68          
+     69          /* Control signals (Platform dependent) */
+     70          #define CS_LOW()	  LL_GPIO_ResetOutputPin(GPIOD, LL_GPIO_PIN_2)  /* MMC CS = L */
+     71          #define	CS_HIGH()	  LL_GPIO_SetOutputPin(GPIOD, LL_GPIO_PIN_2)    /* MMC CS = H */
+     72          
+     73          
+     74          #define	FCLK_SLOW()			/* Set slow clock (100k-400k) */
+     75          #define	FCLK_FAST()	set_max_speed()	/* Set fast clock (depends on the CSD) */
+     76          
+     77          static volatile
+     78          DSTATUS Stat = STA_NOINIT;	/* Disk status */
+     79          
+     80          static
+     81          UINT CardType;
+     82          
+     83          
+     84          /*-----------------------------------------------------------------------*/
+     85          /* Send 80 or so clock transitions with CS and DI held high. This is     */
+     86          /* required after card power up to get it into SPI mode                  */
+     87          /*-----------------------------------------------------------------------*/
+     88          static
+     89          void send_initial_clock_train(void)
+     90          {
+     91            LL_GPIO_InitTypeDef GPIO_InitStruct;
+     92            unsigned int i;
+     93            DWORD timeoutTime;
+     94          
+     95            /* Ensure CS is held high. */
+     96            CS_HIGH();
+     97          
+     98            /* Switch the SSI TX line to a GPIO and drive it high too. */
+     99            GPIO_InitStruct.Pin = LL_GPIO_PIN_12;
+    100            GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    101            GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+    102            GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    103            GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    104            LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    105            LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_12);
+    106          
+    107            /* Send 10 bytes over the SSI. This causes the clock to wiggle the */
+    108            /* required number of times. */
+    109            for(i = 0 ; i < 10 ; i++)
+    110            {
+    111              /* Set timeout time to wait for DR register empty */
+    112              timeoutTime = TimerGet() + 100;
+    113              /* Loop while DR register in not empty */
+    114              while (LL_SPI_IsActiveFlag_TXE(SPI3) == 0)
+    115              {
+    116                /* Break wait loop upon timeout */
+    117                if (TimerGet() > timeoutTime)
+    118                {
+    119                  break;
+    120                }
+    121              }
+    122          
+    123              /* Send byte through the SPI peripheral */
+    124              LL_SPI_TransmitData8(SPI3, 0xff);
+    125          
+    126              /* Set timeout time to wait for byte reception */
+    127              timeoutTime = TimerGet() + 100;
+    128              /* Wait to receive a byte */
+    129              while (LL_SPI_IsActiveFlag_RXNE(SPI3) == 0)
+    130              {
+    131                /* Break wait loop upon timeout */
+    132                if (TimerGet() > timeoutTime)
+    133                {
+    134                  break;
+    135                }
+    136              }
+    137            }
+    138          
+    139            /* Revert to hardware control of the SSI TX line. */
+    140            GPIO_InitStruct.Pin = LL_GPIO_PIN_12;
+    141            GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    142            GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    143            GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    144            GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    145            GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
+    146            LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    147          }
+    148          
+    149          
+    150          /*-----------------------------------------------------------------------*/
+    151          /* Power Control  (Platform dependent)                                   */
+    152          /*-----------------------------------------------------------------------*/
+    153          /* When the target system does not support socket power control, there   */
+    154          /* is nothing to do in these functions.                                  */
+    155          static
+    156          void power_on (void)
+    157          {
+    158            LL_SPI_InitTypeDef  SPI_InitStruct;
+    159            LL_GPIO_InitTypeDef GPIO_InitStruct;
+    160          
+    161            /*
+    162             * This doesn't really turn the power on, but initializes the
+    163             * SSI port and pins needed to talk to the card.
+    164             */
+    165            /* Enable SPI and GPIO peripheral clocks. */
+    166            LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
+    167            LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOD);
+    168            LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_SPI3);
+    169          
+    170            /* Configure I/O for Chip select (PD2) */
+    171            GPIO_InitStruct.Pin = LL_GPIO_PIN_2;
+    172            GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    173            GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+    174            GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    175            GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    176            LL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+    177          
+    178            /* De-select the Card: Chip Select high */
+    179            LL_GPIO_SetOutputPin(GPIOD, LL_GPIO_PIN_2);
+    180          
+    181            /* Configure SPI pins: SCK (PC10), MOSI (PC12) and MISO (PC11) */
+    182            GPIO_InitStruct.Pin = LL_GPIO_PIN_10 | LL_GPIO_PIN_11 | LL_GPIO_PIN_12;
+    183            GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    184            GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    185            GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    186            GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    187            GPIO_InitStruct.Alternate = LL_GPIO_AF_6;
+    188            LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    189          
+    190            /* SPI3 parameter configuration */
+    191            SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
+    192            SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
+    193            SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
+    194            SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
+    195            SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
+    196            SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
+    197            SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV128; // 120MHz/4/128=234kHz < 400kHz
+    198            SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
+    199            SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
+    200            SPI_InitStruct.CRCPoly = 7;
+    201            LL_SPI_Init(SPI3, &SPI_InitStruct);
+    202            LL_SPI_SetStandard(SPI3, LL_SPI_PROTOCOL_MOTOROLA);
+    203            LL_SPI_Enable(SPI3);
+    204          
+    205            /* Set DI and CS high and apply more than 74 pulses to SCLK for the card */
+    206            /* to be able to accept a native command. */
+    207            send_initial_clock_train();
+    208          }
+    209          
+    210          // set the SSI speed to the max setting
+    211          static
+    212          void set_max_speed(void)
+    213          {
+    214            LL_SPI_InitTypeDef  SPI_InitStruct;
+    215          
+    216            /* Disable the SPI system */
+    217            LL_SPI_Disable(SPI3);
+    218          
+    219            /* MMC/SDC can work at the clock frequency up to 20/25MHz so pick a speed close to
+    220             * this but not higher
+    221             */
+    222            SPI_InitStruct.TransferDirection = LL_SPI_FULL_DUPLEX;
+    223            SPI_InitStruct.Mode = LL_SPI_MODE_MASTER;
+    224            SPI_InitStruct.DataWidth = LL_SPI_DATAWIDTH_8BIT;
+    225            SPI_InitStruct.ClockPolarity = LL_SPI_POLARITY_LOW;
+    226            SPI_InitStruct.ClockPhase = LL_SPI_PHASE_1EDGE;
+    227            SPI_InitStruct.NSS = LL_SPI_NSS_SOFT;
+    228            SPI_InitStruct.BaudRate = LL_SPI_BAUDRATEPRESCALER_DIV2; // 120MHz/4/2=15MHz < 25MHz
+    229            SPI_InitStruct.BitOrder = LL_SPI_MSB_FIRST;
+    230            SPI_InitStruct.CRCCalculation = LL_SPI_CRCCALCULATION_DISABLE;
+    231            SPI_InitStruct.CRCPoly = 7;
+    232            LL_SPI_Init(SPI3, &SPI_InitStruct);
+    233            LL_SPI_SetStandard(SPI3, LL_SPI_PROTOCOL_MOTOROLA);
+    234            LL_SPI_Enable(SPI3);
+    235          }
+    236          
+    237          static
+    238          void power_off (void)
+    239          {
+    240          	Stat |= STA_NOINIT;	/* Force uninitialized */
+    241          }
+    242          
+    243          
+    244          /*-----------------------------------------------------------------------*/
+    245          /* Transmit/Receive data to/from MMC via SPI  (Platform dependent)       */
+    246          /*-----------------------------------------------------------------------*/
+    247          
+    248          static
+    249          BYTE xchg_spi (BYTE dat)
+    250          {
+    251            BYTE result = 0;
+    252            DWORD timeOutTime;
+    253            BYTE timeoutDetected = 0;
+    254          
+    255            /* Send byte through the SPI peripheral */
+    256            LL_SPI_TransmitData8(SPI3, dat);
+    257          
+    258            /* Set timeout for 50 ms from now */
+    259            timeOutTime = TimerGet() + 50;
+    260          
+    261            /* Wait to receive a byte with timeout */
+    262            while (LL_SPI_IsActiveFlag_RXNE(SPI3) == 0)
+    263            {
+    264              /* Service the watchdog */
+    265              CopService();
+    266          
+    267              /* Check for timeout */
+    268              if (TimerGet() > timeOutTime)
+    269              {
+    270                /* Set flag to remember that a timeout occurred and nothing was received */
+    271                timeoutDetected = 1;
+    272                /* Stop waiting */
+    273                break;
+    274              }
+    275            }
+    276          
+    277            /* Read the value of the received byte */
+    278            if (timeoutDetected == 0)
+    279            {
+    280              result = LL_SPI_ReceiveData8(SPI3);
+    281            }
+    282          
+    283            /* Give the result back to the caller */
+    284            return result;
+    285          }
+    286          
+    287          static
+    288          void rcvr_spi_m (BYTE *dst)
+    289          {
+    290              *dst = xchg_spi(0xFF);
+    291          }
+    292          
+    293          
+    294          /*-----------------------------------------------------------------------*/
+    295          /* Wait for card ready                                                   */
+    296          /*-----------------------------------------------------------------------*/
+    297          
+    298          static
+    299          int wait_ready (void)
+    300          {
+    301          	BYTE d;
+    302            DWORD timeOutTime;
+    303          
+    304            /* set timeout for 500 ms from now */
+    305            timeOutTime = TimerGet() + 500;
+    306          
+    307          	do {
+    308          		d = xchg_spi(0xFF);
+    309              /* Service the watchdog */
+    310              CopService();
+    311          	} while ((d != 0xFF) && (TimerGet() < timeOutTime));
+    312          
+    313          	return (d == 0xFF) ? 1 : 0;
+    314          }
+    315          
+    316          
+    317          /*-----------------------------------------------------------------------*/
+    318          /* Deselect the card and release SPI bus                                 */
+    319          /*-----------------------------------------------------------------------*/
+    320          
+    321          static
+    322          void deselect_card (void)
+    323          {
+    324          	CS_HIGH();
+    325          	xchg_spi(0xFF);		/* Dummy clock (force DO hi-z for multiple slave SPI) */
+    326          }
+    327          
+    328          
+    329          
+    330          /*-----------------------------------------------------------------------*/
+    331          /* Select the card and wait ready                                        */
+    332          /*-----------------------------------------------------------------------*/
+    333          
+    334          static
+    335          int select_card (void)	/* 1:Successful, 0:Timeout */
+    336          {
+    337          	CS_LOW();
+    338          	xchg_spi(0xFF);		/* Dummy clock (force DO enabled) */
+    339          
+    340          	if (wait_ready()) return 1;	/* OK */
+    341          	deselect_card();
+    342          	return 0;	/* Timeout */
+    343          }
+    344          
+    345          
+    346          
+    347          /*-----------------------------------------------------------------------*/
+    348          /* Receive a data packet from MMC                                        */
+    349          /*-----------------------------------------------------------------------*/
+    350          
+    351          static
+    352          int rcvr_datablock (	/* 1:OK, 0:Failed */
+    353          	BYTE *buff,			/* Data buffer to store received data */
+    354          	UINT btr			/* Byte count (must be multiple of 4) */
+    355          )
+    356          {
+    357          	BYTE token;
+    358            DWORD timeOutTime;
+    359          
+    360            /* set timeout for 100 ms from now */
+    361            timeOutTime = TimerGet() + 100;
+    362          
+    363          	do {							/* Wait for data packet in timeout of 100ms */
+    364          		token = xchg_spi(0xFF);
+    365              /* Service the watchdog */
+    366              CopService();
+    367          
+    368          	} while ((token == 0xFF) && (TimerGet() < timeOutTime));
+    369          
+    370          	if(token != 0xFE) return 0;		/* If not valid data token, retutn with error */
+    371          
+    372              do {                            /* Receive the data block into buffer */
+    373                  rcvr_spi_m(buff++);
+    374                  rcvr_spi_m(buff++);
+    375                  /* Service the watchdog */
+    376                  CopService();
+    377              } while (btr -= 2);
+    378          	xchg_spi(0xFF);					/* Discard CRC */
+    379          	xchg_spi(0xFF);
+    380          
+    381          	return 1;						/* Return with success */
+    382          }
+    383          
+    384          
+    385          
+    386          /*-----------------------------------------------------------------------*/
+    387          /* Send a data packet to MMC                                             */
+    388          /*-----------------------------------------------------------------------*/
+    389          
+    390          static
+    391          int xmit_datablock (	/* 1:OK, 0:Failed */
+    392          	const BYTE *buff,	/* 512 byte data block to be transmitted */
+    393          	BYTE token			/* Data token */
+    394          )
+    395          {
+    396              BYTE resp;
+    397              UINT wc;
+    398          
+    399          
+    400          	if (!wait_ready()) return 0;
+    401          
+    402          	xchg_spi(token);		/* Xmit a token */
+    403          	if (token != 0xFD) {	/* Not StopTran token */
+    404                  wc = 512;
+    405                  do {                            /* Xmit the 512 byte data block to MMC */
+    406                      xchg_spi(*buff++);
+    407                      xchg_spi(*buff++);
+    408                      /* Service the watchdog */
+    409                      CopService();
+    410                  } while (wc -= 2);
+    411          		xchg_spi(0xFF);				/* CRC (Dummy) */
+    412          		xchg_spi(0xFF);
+    413          		resp = xchg_spi(0xFF);		/* Receive a data response */
+    414          		if ((resp & 0x1F) != 0x05)	/* If not accepted, return with error */
+    415          			return 0;
+    416          	}
+    417          
+    418          	return 1;
+    419          }
+    420          
+    421          
+    422          
+    423          /*-----------------------------------------------------------------------*/
+    424          /* Send a command packet to MMC                                          */
+    425          /*-----------------------------------------------------------------------*/
+    426          
+    427          static
+    428          BYTE send_cmd (
+    429          	BYTE cmd,		/* Command byte */
+    430          	DWORD arg		/* Argument */
+    431          )
+    432          {
+    433          	BYTE n, res;
+    434          
+    435          
+    436          	if (cmd & 0x80) {	/* ACMD<n> is the command sequense of CMD55-CMD<n> */
+    437          		cmd &= 0x7F;
+    438          		res = send_cmd(CMD55, 0);
+    439          		if (res > 1) return res;
+    440          	}
+    441          
+    442          	/* Select the card and wait for ready */
+    443          	deselect_card();
+    444          	if (!select_card()) return 0xFF;
+    445          
+    446          	/* Send command packet */
+    447          	xchg_spi(0x40 | cmd);			/* Start + Command index */
+    448          	xchg_spi((BYTE)(arg >> 24));	/* Argument[31..24] */
+    449          	xchg_spi((BYTE)(arg >> 16));	/* Argument[23..16] */
+    450          	xchg_spi((BYTE)(arg >> 8));		/* Argument[15..8] */
+    451          	xchg_spi((BYTE)arg);			/* Argument[7..0] */
+    452          	n = 0x01;						/* Dummy CRC + Stop */
+    453          	if (cmd == CMD0) n = 0x95;		/* Valid CRC for CMD0(0) + Stop */
+    454          	if (cmd == CMD8) n = 0x87;		/* Valid CRC for CMD8(0x1AA) + Stop */
+    455          	xchg_spi(n);
+    456          
+    457          	/* Receive command response */
+    458          	if (cmd == CMD12) xchg_spi(0xFF);	/* Skip a stuff byte on stop to read */
+    459          	n = 10;							/* Wait for a valid response in timeout of 10 attempts */
+    460          	do {
+    461          		res = xchg_spi(0xFF);
+    462              /* Service the watchdog */
+    463              CopService();
+    464          	} while ((res & 0x80) && --n);
+    465          
+    466          	return res;			/* Return with the response value */
+    467          }
+    468          
+    469          
+    470          
+    471          /*--------------------------------------------------------------------------
+    472          
+    473             Public Functions
+    474          
+    475          ---------------------------------------------------------------------------*/
+    476          
+    477          
+    478          /*-----------------------------------------------------------------------*/
+    479          /* Initialize Disk Drive                                                 */
+    480          /*-----------------------------------------------------------------------*/
+    481          
+    482          DSTATUS disk_initialize (
+    483          	BYTE pdrv		/* Physical drive nmuber (0) */
+    484          )
+    485          {
+    486          	BYTE n, cmd, ty, ocr[4];
+    487            DWORD timeOutTime;
+    488          
+    489          
+    490          	if (pdrv) return STA_NOINIT;		/* Supports only single drive */
+    491          	if (Stat & STA_NODISK) return Stat;	/* No card in the socket */
+    492          
+    493              power_on();                            /* Force socket power on */
+    494          
+    495               CS_LOW();                /* CS = L */
+    496          
+    497          	ty = 0;
+    498          	if (send_cmd(CMD0, 0) == 1) {			/* Enter Idle state */
+    499              timeOutTime = TimerGet() + 1000; /* Initialization timeout of 1000 msec */
+    500          
+    501          		if (send_cmd(CMD8, 0x1AA) == 1) {	/* SDv2? */
+    502          			for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);			/* Get trailing return value of R7 resp */
+    503          			if (ocr[2] == 0x01 && ocr[3] == 0xAA) {				/* The card can work at vdd range of 2.7-3.6V */
+    504          				while ((TimerGet() < timeOutTime) && send_cmd(ACMD41, 0x40000000));	/* Wait for leaving idle state (ACMD41 with HCS bit) */
+    505          				if ((TimerGet() < timeOutTime) && send_cmd(CMD58, 0) == 0) {			/* Check CCS bit in the OCR */
+    506          					for (n = 0; n < 4; n++) ocr[n] = xchg_spi(0xFF);
+    507          					ty = (ocr[0] & 0x40) ? CT_SD2|CT_BLOCK : CT_SD2;	/* SDv2 */
+    508          				}
+    509          			}
+    510          		} else {							/* SDv1 or MMCv3 */
+    511          			if (send_cmd(ACMD41, 0) <= 1) 	{
+    512          				ty = CT_SD1; cmd = ACMD41;	/* SDv1 */
+    513          			} else {
+    514          				ty = CT_MMC; cmd = CMD1;	/* MMCv3 */
+    515          			}
+    516          			while ((TimerGet() < timeOutTime) && send_cmd(cmd, 0)) {	/* Wait for leaving idle state */
+    517          		    /* Service the watchdog */
+    518          		    CopService();
+    519          			}
+    520          			if (!(TimerGet() < timeOutTime) || send_cmd(CMD16, 512) != 0)	/* Set read/write block length to 512 */
+    521          				ty = 0;
+    522          		}
+    523          	}
+    524          	CardType = ty;
+    525          	deselect_card();
+    526          
+    527          	if (ty) {			/* Initialization succeded */
+    528          		Stat &= ~STA_NOINIT;	/* Clear STA_NOINIT */
+    529          		FCLK_FAST();
+    530          	} else {			/* Initialization failed */
+    531          		power_off();
+    532          	}
+    533          
+    534          	return Stat;
+    535          }
+    536          
+    537          
+    538          
+    539          /*-----------------------------------------------------------------------*/
+    540          /* Get Disk Status                                                       */
+    541          /*-----------------------------------------------------------------------*/
+    542          
+    543          DSTATUS disk_status (
+    544          	BYTE pdrv		/* Physical drive nmuber (0) */
+    545          )
+    546          {
+    547          	if (pdrv) return STA_NOINIT;	/* Supports only single drive */
+    548          	return Stat;
+    549          }
+    550          
+    551          
+    552          
+    553          /*-----------------------------------------------------------------------*/
+    554          /* Read Sector(s)                                                        */
+    555          /*-----------------------------------------------------------------------*/
+    556          
+    557          DRESULT disk_read (
+    558          	BYTE pdrv,		/* Physical drive nmuber to identify the drive */
+    559          	BYTE *buff,		/* Data buffer to store read data */
+    560          	DWORD sector,	/* Sector address in LBA */
+    561          	UINT count		/* Number of sectors to read */
+    562          )
+    563          {
+    564          	if (pdrv || !count) return RES_PARERR;
+    565          	if (Stat & STA_NOINIT) return RES_NOTRDY;
+    566          
+    567          	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
+    568          
+    569          	if (count == 1) {		/* Single block read */
+    570          		if ((send_cmd(CMD17, sector) == 0)	/* READ_SINGLE_BLOCK */
+    571          			&& rcvr_datablock(buff, 512))
+    572          			count = 0;
+    573          	}
+    574          	else {				/* Multiple block read */
+    575          		if (send_cmd(CMD18, sector) == 0) {	/* READ_MULTIPLE_BLOCK */
+    576          			do {
+    577          				if (!rcvr_datablock(buff, 512)) break;
+    578          				buff += 512;
+    579          		    /* Service the watchdog */
+    580          		    CopService();
+    581          			} while (--count);
+    582          			send_cmd(CMD12, 0);				/* STOP_TRANSMISSION */
+    583          		}
+    584          	}
+    585          	deselect_card();
+    586          
+    587          	return count ? RES_ERROR : RES_OK;
+    588          }
+    589          
+    590          
+    591          
+    592          /*-----------------------------------------------------------------------*/
+    593          /* Write Sector(s)                                                       */
+    594          /*-----------------------------------------------------------------------*/
+    595          
+    596          DRESULT disk_write (
+    597          	BYTE pdrv,			/* Physical drive nmuber to identify the drive */
+    598          	const BYTE *buff,	/* Data to be written */
+    599          	DWORD sector,		/* Sector address in LBA */
+    600          	UINT count			/* Number of sectors to write */
+    601          )
+    602          {
+    603          	if (pdrv || !count) return RES_PARERR;
+    604          	if (Stat & STA_NOINIT) return RES_NOTRDY;
+    605          	if (Stat & STA_PROTECT) return RES_WRPRT;
+    606          
+    607          	if (!(CardType & CT_BLOCK)) sector *= 512;	/* Convert to byte address if needed */
+    608          
+    609          	if (count == 1) {		/* Single block write */
+    610          		if ((send_cmd(CMD24, sector) == 0)	/* WRITE_BLOCK */
+    611          			&& xmit_datablock(buff, 0xFE))
+    612          			count = 0;
+    613          	}
+    614          	else {				/* Multiple block write */
+    615          		if (CardType & CT_SDC) send_cmd(ACMD23, count);
+    616          		if (send_cmd(CMD25, sector) == 0) {	/* WRITE_MULTIPLE_BLOCK */
+    617          			do {
+    618          				if (!xmit_datablock(buff, 0xFC)) break;
+    619          				buff += 512;
+    620          		    /* Service the watchdog */
+    621          		    CopService();
+    622          			} while (--count);
+    623          			if (!xmit_datablock(0, 0xFD))	/* STOP_TRAN token */
+    624          				count = 1;
+    625          		}
+    626          	}
+    627          	deselect_card();
+    628          
+    629          	return count ? RES_ERROR : RES_OK;
+    630          }
+    631          
+    632          
+    633          
+    634          /*-----------------------------------------------------------------------*/
+    635          /* Miscellaneous Functions                                               */
+    636          /*-----------------------------------------------------------------------*/
+    637          
+    638          DRESULT disk_ioctl (
+    639          	BYTE pdrv,		/* Physical drive nmuber (0) */
+    640          	BYTE cmd,		/* Control code */
+    641          	void *buff		/* Buffer to send/receive data block */
+    642          )
+    643          {
+    644          	DRESULT res;
+    645          	BYTE n, csd[16], *ptr = buff;
+    646          	DWORD csz;
+    647          
+    648          
+    649          	if (pdrv) return RES_PARERR;
+    650          	if (Stat & STA_NOINIT) return RES_NOTRDY;
+    651          
+    652          	res = RES_ERROR;
+    653          	switch (cmd) {
+    654          	case CTRL_SYNC :	/* Flush write-back cache, Wait for end of internal process */
+    655          		if (select_card()) res = RES_OK;
+    656          		break;
+    657          
+    658          	case GET_SECTOR_COUNT :	/* Get number of sectors on the disk (WORD) */
+    659          		if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {
+    660          			if ((csd[0] >> 6) == 1) {	/* SDv2? */
+    661          				csz = csd[9] + ((WORD)csd[8] << 8) + ((DWORD)(csd[7] & 63) << 16) + 1;
+    662          				*(DWORD*)buff = csz << 10;
+    663          			} else {					/* SDv1 or MMCv3 */
+    664          				n = (csd[5] & 15) + ((csd[10] & 128) >> 7) + ((csd[9] & 3) << 1) + 2;
+    665          				csz = (csd[8] >> 6) + ((WORD)csd[7] << 2) + ((WORD)(csd[6] & 3) << 10) + 1;
+    666          				*(DWORD*)buff = csz << (n - 9);
+    667          			}
+    668          			res = RES_OK;
+    669          		}
+    670          		break;
+    671          
+    672          	case GET_BLOCK_SIZE :	/* Get erase block size in unit of sectors (DWORD) */
+    673          		if (CardType & CT_SD2) {	/* SDv2? */
+    674          			if (send_cmd(ACMD13, 0) == 0) {		/* Read SD status */
+    675          				xchg_spi(0xFF);
+    676          				if (rcvr_datablock(csd, 16)) {				/* Read partial block */
+    677          					for (n = 64 - 16; n; n--) xchg_spi(0xFF);	/* Purge trailing data */
+    678          					*(DWORD*)buff = 16UL << (csd[10] >> 4);
+    679          					res = RES_OK;
+    680          				}
+    681          			}
+    682          		} else {					/* SDv1 or MMCv3 */
+    683          			if ((send_cmd(CMD9, 0) == 0) && rcvr_datablock(csd, 16)) {	/* Read CSD */
+    684          				if (CardType & CT_SD1) {	/* SDv1 */
+    685          					*(DWORD*)buff = (((csd[10] & 63) << 1) + ((WORD)(csd[11] & 128) >> 7) + 1) << ((csd[13] >> 6) - 1);
+    686          				} else {					/* MMCv3 */
+    687          					*(DWORD*)buff = ((WORD)((csd[10] & 124) >> 2) + 1) * (((csd[11] & 3) << 3) + ((csd[11] & 224) >> 5) + 1);
+    688          				}
+    689          				res = RES_OK;
+    690          			}
+    691          		}
+    692          		break;
+    693          
+    694          	case MMC_GET_TYPE :		/* Get card type flags (1 byte) */
+    695          		*ptr = CardType;
+    696          		res = RES_OK;
+    697          		break;
+    698          
+    699          	case MMC_GET_CSD :	/* Receive CSD as a data block (16 bytes) */
+    700          		if ((send_cmd(CMD9, 0) == 0)	/* READ_CSD */
+    701          			&& rcvr_datablock(buff, 16))
+    702          			res = RES_OK;
+    703          		break;
+    704          
+    705          	case MMC_GET_CID :	/* Receive CID as a data block (16 bytes) */
+    706          		if ((send_cmd(CMD10, 0) == 0)	/* READ_CID */
+    707          			&& rcvr_datablock(buff, 16))
+    708          			res = RES_OK;
+    709          		break;
+    710          
+    711          	case MMC_GET_OCR :	/* Receive OCR as an R3 resp (4 bytes) */
+    712          		if (send_cmd(CMD58, 0) == 0) {	/* READ_OCR */
+    713          			for (n = 0; n < 4; n++) {
+    714          				*((BYTE*)buff+n) = xchg_spi(0xFF);
+    715          		    /* Service the watchdog */
+    716          		    CopService();
+    717          			}
+    718          			res = RES_OK;
+    719          		}
+    720          		break;
+    721          
+    722          	case MMC_GET_SDSTAT :	/* Receive SD status as a data block (64 bytes) */
+    723          		if ((CardType & CT_SD2) && send_cmd(ACMD13, 0) == 0) {	/* SD_STATUS */
+    724          			xchg_spi(0xFF);
+    725          			if (rcvr_datablock(buff, 64))
+    726          				res = RES_OK;
+    727          		}
+    728          		break;
+    729          
+    730          	default:
+    731          		res = RES_PARERR;
+    732          	}
+    733          
+    734          	deselect_card();
+    735          
+    736          	return res;
+    737          }
+    738          
+    739          
+    740          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       4   LL_AHB1_GRP1_EnableClock
+       4   LL_APB1_GRP1_EnableClock
+       0   LL_GPIO_ResetOutputPin
+       0   LL_GPIO_SetOutputPin
+       0   LL_SPI_Disable
+       0   LL_SPI_Enable
+       0   LL_SPI_IsActiveFlag_RXNE
+       0   LL_SPI_IsActiveFlag_TXE
+       0   LL_SPI_ReceiveData8
+       0   LL_SPI_SetStandard
+       0   LL_SPI_TransmitData8
+       8   deselect_card
+         8   -> LL_GPIO_SetOutputPin
+         8   -> xchg_spi
+      24   disk_initialize
+        24   -> CopService
+        24   -> LL_GPIO_ResetOutputPin
+        24   -> TimerGet
+        24   -> deselect_card
+        24   -> power_off
+        24   -> power_on
+        24   -> send_cmd
+        24   -> set_max_speed
+        24   -> xchg_spi
+      32   disk_ioctl
+        32   -> CopService
+        32   -> deselect_card
+        32   -> rcvr_datablock
+        32   -> select_card
+        32   -> send_cmd
+        32   -> xchg_spi
+      16   disk_read
+        16   -> CopService
+        16   -> deselect_card
+        16   -> rcvr_datablock
+        16   -> send_cmd
+       0   disk_status
+      16   disk_write
+        16   -> CopService
+        16   -> deselect_card
+        16   -> send_cmd
+        16   -> xmit_datablock
+       0   power_off
+      72   power_on
+        72   -> LL_AHB1_GRP1_EnableClock
+        72   -> LL_APB1_GRP1_EnableClock
+        72   -> LL_GPIO_Init
+        72   -> LL_GPIO_SetOutputPin
+        72   -> LL_SPI_Enable
+        72   -> LL_SPI_Init
+        72   -> LL_SPI_SetStandard
+        72   -> send_initial_clock_train
+      24   rcvr_datablock
+        24   -> CopService
+        24   -> TimerGet
+        24   -> rcvr_spi_m
+        24   -> xchg_spi
+       8   rcvr_spi_m
+         8   -> xchg_spi
+       8   select_card
+         8   -> LL_GPIO_ResetOutputPin
+         8   -> deselect_card
+         8   -> wait_ready
+         8   -> xchg_spi
+      16   send_cmd
+        16   -> CopService
+        16   -> deselect_card
+        16   -> select_card
+        16   -> send_cmd
+        16   -> xchg_spi
+      48   send_initial_clock_train
+        48   -> LL_GPIO_Init
+        48   -> LL_GPIO_SetOutputPin
+        48   -> LL_SPI_IsActiveFlag_RXNE
+        48   -> LL_SPI_IsActiveFlag_TXE
+        48   -> LL_SPI_TransmitData8
+        48   -> TimerGet
+      48   set_max_speed
+        48   -> LL_SPI_Disable
+        48   -> LL_SPI_Enable
+        48   -> LL_SPI_Init
+        48   -> LL_SPI_SetStandard
+      16   wait_ready
+        16   -> CopService
+        16   -> TimerGet
+        16   -> xchg_spi
+      24   xchg_spi
+        24   -> CopService
+        24   -> LL_SPI_IsActiveFlag_RXNE
+        24   -> LL_SPI_ReceiveData8
+        24   -> LL_SPI_TransmitData8
+        24   -> TimerGet
+      16   xmit_datablock
+        16   -> CopService
+        16   -> wait_ready
+        16   -> xchg_spi
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable13
+       4  ??DataTable13_1
+       4  ??DataTable13_2
+       4  ??DataTable13_3
+       4  ??DataTable13_4
+       4  ??DataTable13_5
+       4  ??DataTable13_6
+       4  CardType
+      24  LL_AHB1_GRP1_EnableClock
+      24  LL_APB1_GRP1_EnableClock
+       6  LL_GPIO_ResetOutputPin
+       4  LL_GPIO_SetOutputPin
+      10  LL_SPI_Disable
+      10  LL_SPI_Enable
+       8  LL_SPI_IsActiveFlag_RXNE
+      10  LL_SPI_IsActiveFlag_TXE
+       6  LL_SPI_ReceiveData8
+      12  LL_SPI_SetStandard
+       4  LL_SPI_TransmitData8
+       1  Stat
+      20  deselect_card
+     322  disk_initialize
+     568  disk_ioctl
+     146  disk_read
+      18  disk_status
+     174  disk_write
+      14  power_off
+     178  power_on
+      94  rcvr_datablock
+      14  rcvr_spi_m
+      38  select_card
+     172  send_cmd
+     170  send_initial_clock_train
+      84  set_max_speed
+      54  wait_ready
+      72  xchg_spi
+      98  xmit_datablock
+
+ 
+     4 bytes in section .bss
+     1 byte  in section .data
+ 2'382 bytes in section .text
+ 
+ 2'382 bytes of CODE memory
+     5 bytes of DATA memory
+
+Errors: none
+Warnings: none

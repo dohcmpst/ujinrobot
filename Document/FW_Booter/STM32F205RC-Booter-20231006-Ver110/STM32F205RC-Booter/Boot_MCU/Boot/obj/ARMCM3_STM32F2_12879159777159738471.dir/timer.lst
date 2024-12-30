@@ -1,0 +1,216 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\timer.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\timer.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\timer.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\timer.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\timer.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\timer.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\timer.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/timer.c
+      3          * \brief        Bootloader timer driver source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2016  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "stm32f2xx.h"                           /* STM32 CPU and HAL header           */
+     34          
+     35          
+     36          /****************************************************************************************
+     37          * Local data declarations
+     38          ****************************************************************************************/
+     39          /** \brief Local variable for storing the number of milliseconds that have elapsed since
+     40           *         startup.
+     41           */
+     42          static blt_int32u millisecond_counter;
+     43          
+     44          
+     45          /************************************************************************************//**
+     46          ** \brief     Initializes the polling based millisecond timer driver.
+     47          ** \return    none.
+     48          **
+     49          ****************************************************************************************/
+     50          void TimerInit(void)
+     51          {
+     52            /* Reset the timer configuration. */
+     53            TimerReset();
+     54          
+     55            /* Configure the systick frequency as a 1 ms event generator. */
+     56            SysTick->LOAD = BOOT_CPU_SYSTEM_SPEED_KHZ - 1;
+     57            /* Reset the current counter value. */
+     58            SysTick->VAL = 0;
+     59            /* Select core clock as source and enable the timer. */
+     60            SysTick->CTRL = SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk;
+     61            /* Reset the millisecond counter value. */
+     62            millisecond_counter = 0;
+     63          } /*** end of TimerInit ***/
+     64          
+     65          
+     66          /************************************************************************************//**
+     67          ** \brief     Reset the timer by placing the timer back into it's default reset
+     68          **            configuration.
+     69          ** \return    none.
+     70          **
+     71          ****************************************************************************************/
+     72          void TimerReset(void)
+     73          {
+     74            /* Set the systick's registers back into the default reset value. */
+     75            SysTick->CTRL = 0;
+     76            SysTick->LOAD = 0;
+     77            SysTick->VAL = 0;
+     78          } /* end of TimerReset */
+     79          
+     80          
+     81          /************************************************************************************//**
+     82          ** \brief     Updates the millisecond timer.
+     83          ** \return    none.
+     84          **
+     85          ****************************************************************************************/
+     86          void TimerUpdate(void)
+     87          {
+     88            /* Check if the millisecond event occurred. */
+     89            if ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) != 0)
+     90            {
+     91              /* Increment the millisecond counter. */
+     92              millisecond_counter++;
+     93            }
+     94          } /*** end of TimerUpdate ***/
+     95          
+     96          
+     97          /************************************************************************************//**
+     98          ** \brief     Obtains the counter value of the millisecond timer.
+     99          ** \return    Current value of the millisecond timer.
+    100          **
+    101          ****************************************************************************************/
+    102          blt_int32u TimerGet(void)
+    103          {
+    104            /* Updating timer here allows this function to be called in a loop with timeout
+    105             * detection.
+    106             */
+    107            TimerUpdate();
+    108            /* Read and return the amount of milliseconds that passed since initialization. */
+    109            return millisecond_counter;
+    110          } /*** end of TimerGet ***/
+    111          
+    112          
+    113          /************************************************************************************//**
+    114          ** \brief     Override for the HAL driver's GetTick() functionality. This is needed
+    115          **            because the bootloader doesn't use interrupts, but the HAL's tick
+    116          **            functionality assumes that it does. This will cause the HAL_Delay()
+    117          **            function to not work properly. As a result of this override, the HAL's
+    118          **            tick functionality works in polling mode.
+    119          ** \return    Current value of the millisecond timer.
+    120          **
+    121          ****************************************************************************************/
+    122          uint32_t HAL_GetTick(void)
+    123          {
+    124            /* Link to the bootloader's 1ms timer. */
+    125            return TimerGet();
+    126          } /*** end of HAL_GetTick ***/
+    127          
+    128          
+    129          /*********************************** end of timer.c ************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   HAL_GetTick
+         8   -> TimerGet
+       8   TimerGet
+         8   -> TimerUpdate
+       8   TimerInit
+         8   -> TimerReset
+       0   TimerReset
+       0   TimerUpdate
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable3
+       4  ??DataTable3_1
+       4  ??DataTable3_2
+       4  ??DataTable3_3
+       4  ??DataTable3_4
+       8  HAL_GetTick
+      12  TimerGet
+      32  TimerInit
+      20  TimerReset
+      18  TimerUpdate
+       4  millisecond_counter
+
+ 
+   4 bytes in section .bss
+ 110 bytes in section .text
+ 
+ 110 bytes of CODE memory
+   4 bytes of DATA memory
+
+Errors: none
+Warnings: none

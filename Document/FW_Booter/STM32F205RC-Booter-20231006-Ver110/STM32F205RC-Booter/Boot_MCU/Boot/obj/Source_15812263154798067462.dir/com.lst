@@ -1,0 +1,470 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\com.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\com.o.rsp
+#        (R:\STM32F205RC-Booter\Source\com.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\com.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\com.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\com.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\com.c
+      1          /************************************************************************************//**
+      2          * \file         Source/com.c
+      3          * \brief        Bootloader communication interface source file.
+      4          * \ingroup      Core
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2011  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          
+     34          #if (BOOT_COM_CAN_ENABLE > 0)
+     35          #include "can.h"                                 /* can driver module                  */
+     36          #endif
+     37          
+     38          #if ((BOOT_COM_RS232_ENABLE > 0) || (BOOT_DEBUG_UART_ENABLE > 0) ) 
+     39          #include "rs232.h"                               /* rs232 driver module                */
+     40          #endif
+     41          
+     42          #if (BOOT_COM_USB_ENABLE > 0)
+     43          #include "usb.h"                                 /* usb driver module                  */
+     44          #endif
+     45          #if (BOOT_COM_NET_ENABLE > 0)
+     46          #include "net.h"                                 /* tcp/ip driver module               */
+     47          #endif
+     48          
+     49          
+     50          #if (BOOT_COM_ENABLE > 0)
+     51          /****************************************************************************************
+     52          * Local data declarations
+     53          ****************************************************************************************/
+     54          /** \brief Holds the communication interface of the currently active interface. */
+     55          static tComInterfaceId comActiveInterface = COM_IF_OTHER;
+     56          
+     57          
+     58          /************************************************************************************//**
+     59          ** \brief     Initializes the communication module including the hardware needed for
+     60          **            the communication.
+     61          ** \return    none
+     62          **
+     63          ****************************************************************************************/
+     64          void ComInit(void)
+     65          {
+     66              /* initialize the XCP communication protocol */
+     67              XcpInit();
+     68          
+     69              #if ( ((BOOT_FILE_LOGGING_ENABLE > 0) && (BOOT_COM_RS232_ENABLE == 0)) || \
+     70                    (BOOT_DEBUG_UART_ENABLE > 0) ) 
+     71                  {
+     72                    void Rs232Init(void);
+     73                    Rs232Init();
+     74                  }
+     75              #endif
+     76              
+     77              #if (BOOT_COM_CAN_ENABLE > 0)
+     78                /* initialize the CAN controller */
+     79                CanInit();
+     80                /* set it as active */
+     81                comActiveInterface = COM_IF_CAN;
+     82              #endif
+     83          
+     84              #if (BOOT_COM_RS232_ENABLE > 0)
+     85                /* initialize the RS232 interface */
+     86                Rs232Init();
+     87                /* set it as active */
+     88                comActiveInterface = COM_IF_RS232;
+     89              #endif
+     90                
+     91              #if (BOOT_COM_USB_ENABLE > 0)
+     92                /* initialize the USB interface */
+     93                UsbInit();
+     94                /* set it as active */
+     95                comActiveInterface = COM_IF_USB;
+     96              #endif
+     97                
+     98              #if (BOOT_COM_NET_ENABLE > 0)
+     99                #if (BOOT_COM_NET_DEFERRED_INIT_ENABLE == 0)
+    100                /* initialize the TCP/IP interface */
+    101                NetInit();
+    102                /* set it as active */
+    103                comActiveInterface = COM_IF_NET;
+    104                #endif
+    105              #endif
+    106            
+    107          } /*** end of ComInit ***/
+    108          
+    109          
+    110          /************************************************************************************//**
+    111          ** \brief     Updates the communication module by checking if new data was received
+    112          **            and submitting the request to process newly received data.
+    113          ** \return    none
+    114          **
+    115          ****************************************************************************************/
+    116          void ComTask(void)
+    117          {
+    118            blt_int8u xcpPacketLen;
+    119            /* make xcpCtoReqPacket static for runtime efficiency */
+    120            static blt_int8u xcpCtoReqPacket[BOOT_COM_RX_MAX_DATA];
+    121            
+    122          
+    123          #if (BOOT_COM_CAN_ENABLE > 0)
+    124            if (CanReceivePacket(&xcpCtoReqPacket[0], &xcpPacketLen) == BLT_TRUE)
+    125            {
+    126              /* make this the active interface */
+    127              comActiveInterface = COM_IF_CAN;
+    128              /* process packet */
+    129              XcpPacketReceived(&xcpCtoReqPacket[0], xcpPacketLen);
+    130            }
+    131          #endif
+    132            
+    133          #if (BOOT_COM_RS232_ENABLE > 0)
+    134            if (Rs232ReceivePacket(&xcpCtoReqPacket[0], &xcpPacketLen) == BLT_TRUE)
+    135            {
+    136              /* make this the active interface */
+    137              comActiveInterface = COM_IF_RS232;
+    138              /* process packet */
+    139              XcpPacketReceived(&xcpCtoReqPacket[0], xcpPacketLen);
+    140            }
+    141          #endif
+    142            
+    143          #if (BOOT_COM_USB_ENABLE > 0)
+    144            if (UsbReceivePacket(&xcpCtoReqPacket[0], &xcpPacketLen) == BLT_TRUE)
+    145            {
+    146              /* make this the active interface */
+    147              comActiveInterface = COM_IF_USB;
+    148              /* process packet */
+    149              XcpPacketReceived(&xcpCtoReqPacket[0], xcpPacketLen);
+    150            }
+    151          #endif
+    152            
+    153          #if (BOOT_COM_NET_ENABLE > 0)
+    154            if (NetReceivePacket(&xcpCtoReqPacket[0], &xcpPacketLen) == BLT_TRUE)
+    155            {
+    156              /* make this the active interface */
+    157              comActiveInterface = COM_IF_NET;
+    158              /* process packet */
+    159              XcpPacketReceived(&xcpCtoReqPacket[0], xcpPacketLen);
+    160            }
+    161          #endif
+    162          } /*** end of ComTask ***/
+    163          
+    164          
+    165          /************************************************************************************//**
+    166          ** \brief     Releases the communication module.
+    167          ** \return    none
+    168          **
+    169          ****************************************************************************************/
+    170          void ComFree(void)
+    171          {
+    172          #if (BOOT_COM_USB_ENABLE > 0)
+    173            /* disconnect the usb device from the usb host */
+    174            UsbFree();
+    175          #endif
+    176          } /*** end of ComFree ***/
+    177          
+    178          
+    179          /************************************************************************************//**
+    180          ** \brief     Transmits the packet using the xcp transport layer.
+    181          ** \param     data Pointer to the byte buffer with packet data.
+    182          ** \param     len  Number of data bytes that need to be transmitted.
+    183          ** \return    none
+    184          **
+    185          ****************************************************************************************/
+    186          void ComTransmitPacket(blt_int8u *data, blt_int16u len)
+    187          {
+    188          #if (BOOT_COM_CAN_ENABLE > 0)
+    189            /* transmit the packet. note that len is limited to 8 in the plausibility check,
+    190             * so cast is okay.
+    191             */
+    192            if (comActiveInterface == COM_IF_CAN)
+    193            {
+    194              CanTransmitPacket(data, (blt_int8u)len);
+    195            }
+    196          #endif
+    197          #if (BOOT_COM_RS232_ENABLE > 0)
+    198            /* transmit the packet. note that len is limited to 255 in the plausibility check,
+    199             * so cast is okay.
+    200             */
+    201            if (comActiveInterface == COM_IF_RS232)
+    202            {
+    203              Rs232TransmitPacket(data, (blt_int8u)len);
+    204            }
+    205          #endif
+    206          #if (BOOT_COM_USB_ENABLE > 0)
+    207            /* transmit the packet */
+    208            if (comActiveInterface == COM_IF_USB)
+    209            {
+    210              UsbTransmitPacket(data, len);
+    211            }
+    212          #endif
+    213          #if (BOOT_COM_NET_ENABLE > 0)
+    214            if (comActiveInterface == COM_IF_NET)
+    215            {
+    216              /* transmit the packet */
+    217              NetTransmitPacket(data, len);
+    218            }
+    219          #endif
+    220          
+    221            /* send signal that the packet was transmitted */
+    222            XcpPacketTransmitted();
+    223          } /*** end of ComTransmitPacket ***/
+    224          
+    225          
+    226          /************************************************************************************//**
+    227          ** \brief     Obtains the maximum number of bytes that can be received on the specified
+    228          **            communication interface.
+    229          ** \return    Maximum number of bytes that can be received.
+    230          **
+    231          ****************************************************************************************/
+    232          blt_int16u ComGetActiveInterfaceMaxRxLen(void)
+    233          {
+    234            blt_int16u result;
+    235          
+    236            /* filter on communication interface identifier */
+    237            switch (comActiveInterface)
+    238            {
+    239              case COM_IF_RS232:
+    240                result = BOOT_COM_RS232_RX_MAX_DATA;
+    241                break;
+    242          
+    243              case COM_IF_CAN:
+    244                result = BOOT_COM_CAN_RX_MAX_DATA;
+    245                break;
+    246          
+    247              case COM_IF_USB:
+    248                result = BOOT_COM_USB_RX_MAX_DATA;
+    249                break;
+    250          
+    251              case COM_IF_NET:
+    252                result = BOOT_COM_NET_RX_MAX_DATA;
+    253                break;
+    254          
+    255              default:
+    256                result = BOOT_COM_RX_MAX_DATA;
+    257                break;
+    258            }
+    259          
+    260            return result;
+    261          } /*** end of ComGetActiveInterfaceMaxRxLen ***/
+    262          
+    263          
+    264          /************************************************************************************//**
+    265          ** \brief     Obtains the maximum number of bytes that can be transmitted on the
+    266          **            specified communication interface.
+    267          ** \return    Maximum number of bytes that can be received.
+    268          **
+    269          ****************************************************************************************/
+    270          blt_int16u ComGetActiveInterfaceMaxTxLen(void)
+    271          {
+    272            blt_int16u result;
+    273          
+    274            /* filter on communication interface identifier */
+    275            switch (comActiveInterface)
+    276            {
+    277              case COM_IF_RS232:
+    278                result = BOOT_COM_RS232_TX_MAX_DATA;
+    279                break;
+    280          
+    281              case COM_IF_CAN:
+    282                result = BOOT_COM_CAN_TX_MAX_DATA;
+    283                break;
+    284          
+    285              case COM_IF_USB:
+    286                result = BOOT_COM_USB_TX_MAX_DATA;
+    287                break;
+    288          
+    289              case COM_IF_NET:
+    290                result = BOOT_COM_NET_TX_MAX_DATA;
+    291                break;
+    292          
+    293              default:
+    294                result = BOOT_COM_TX_MAX_DATA;
+    295                break;
+    296            }
+    297          
+    298            return result;
+    299          } /*** end of ComGetActiveInterfaceMaxTxLen ***/
+    300          
+    301          
+    302          /************************************************************************************//**
+    303          ** \brief     This function obtains the XCP connection state.
+    304          ** \return    BLT_TRUE when an XCP connection is established, BLT_FALSE otherwise.
+    305          **
+    306          ****************************************************************************************/
+    307          blt_bool ComIsConnected(void)
+    308          {
+    309            blt_bool result = BLT_FALSE;
+    310          
+    311            /* Is there an active XCP connection? This indicates that the communication interface
+    312             * is in the connection state. 
+    313             */  
+    314            if (XcpIsConnected())
+    315            {
+    316              result = BLT_TRUE;
+    317            }
+    318          #if (ADDON_GATEWAY_MOD_ENABLE > 0)
+    319            /* Is the gateway active? This indicates an XCP connection with a slave. */
+    320            if (GatewayIsActive())
+    321            {
+    322              result = BLT_TRUE;
+    323            }
+    324          #endif
+    325            /* give the result back to the caller. */
+    326            return result;
+    327          } /*** end of ComIsConnected ***/
+    328          
+    329          
+    330          #if (BOOT_COM_DEFERRED_INIT_ENABLE == 1)
+    331          /************************************************************************************//**
+    332          ** \brief     The deferred init feature makes it possible to bypass the initialization of
+    333          **            a communication interface until this function is called. This feature can
+    334          **            be enabled for a specific communication interface via macro
+    335          **            BOOT_COM_XXX_DEFERRED_INIT_ENABLE in blt_conf.h. At this point only the NET
+    336          **            communication interface supports this feature, as its initialization can
+    337          **            take quite a long time. If there is a valid user program present, then this
+    338          **            would cause an unwanted delay after each reset before the user program can
+    339          **            be started.
+    340          ** \attention Note that when this feature is enabled for a communication interface, the
+    341          **            communication interface is only enabled when: (a) no valid user program is
+    342          **            present or (b) when CpuUserProgramStartHook() returns BLT_FALSE. This means
+    343          **            that after a normal reactivation of the bootloader from the user program,
+    344          **            the communication interface is not initialized and firmware updates are
+    345          **            not possible! In this case it is recommended to somehow pass on the
+    346          **            communication initialization request from the user program to the
+    347          **            bootloader. When this request detected by the bootloader application, this
+    348          **            function should be called. EEPROM or shared RAM can be used to pass on such
+    349          **            a request.
+    350          ** \return    none
+    351          **
+    352          ****************************************************************************************/
+    353          void ComDeferredInit(void)
+    354          {
+    355          #if (BOOT_COM_NET_ENABLE > 0)
+    356            #if (BOOT_COM_NET_DEFERRED_INIT_ENABLE == 1)
+    357            /* perform deferred initialization the TCP/IP interface */
+    358            NetDeferredInit();
+    359            /* set it as active */
+    360            comActiveInterface = COM_IF_NET;
+    361            #endif
+    362          #endif
+    363          #if (BOOT_BACKDOOR_HOOKS_ENABLE == 0)
+    364            /* the default internal timed backdoor mechanism should start its timer after the
+    365             * communication interfaces are initialized. since a deferred initialization was now
+    366             * performed, the backdoor timer should be restarted.
+    367             */
+    368            BackDoorRestartTimer();
+    369          #endif
+    370          } /*** end of ComDeferredInit ***/
+    371          #endif /* BOOT_COM_DEFERRED_INIT_ENABLE == 1 */
+    372          
+    373          
+    374          #endif /* BOOT_COM_ENABLE > 0 */
+    375          
+    376          /*********************************** end of com.c **************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   ComFree
+       0   ComGetActiveInterfaceMaxRxLen
+       0   ComGetActiveInterfaceMaxTxLen
+       8   ComInit
+         8   -> CanInit
+         8   -> Rs232Init
+         8   -> XcpInit
+       8   ComIsConnected
+         8   -> XcpIsConnected
+      16   ComTask
+        16   -> CanReceivePacket
+        16   -> XcpPacketReceived
+       8   ComTransmitPacket
+         8   -> CanTransmitPacket
+         8   -> XcpPacketTransmitted
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable4
+       4  ??DataTable4_1
+       2  ComFree
+      42  ComGetActiveInterfaceMaxRxLen
+      42  ComGetActiveInterfaceMaxTxLen
+      22  ComInit
+      20  ComIsConnected
+      34  ComTask
+      22  ComTransmitPacket
+       1  comActiveInterface
+     132  xcpCtoReqPacket
+
+ 
+ 132 bytes in section .bss
+   1 byte  in section .data
+ 192 bytes in section .text
+ 
+ 192 bytes of CODE memory
+ 133 bytes of DATA memory
+
+Errors: none
+Warnings: none

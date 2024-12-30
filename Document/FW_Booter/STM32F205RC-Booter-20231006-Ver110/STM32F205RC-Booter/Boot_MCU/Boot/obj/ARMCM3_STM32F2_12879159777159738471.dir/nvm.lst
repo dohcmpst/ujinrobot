@@ -1,0 +1,332 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\nvm.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\nvm.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\nvm.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\nvm.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\nvm.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\nvm.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\nvm.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/nvm.c
+      3          * \brief        Bootloader non-volatile memory driver source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2016  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "flash.h"
+     34          
+     35          
+     36          /****************************************************************************************
+     37          * Hook functions
+     38          ****************************************************************************************/
+     39          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+     40          extern void      NvmInitHook(void);
+     41          extern void      NvmReinitHook(void);
+     42          extern blt_int8u NvmWriteHook(blt_addr addr, blt_int32u len, blt_int8u *data);
+     43          extern blt_int8u NvmEraseHook(blt_addr addr, blt_int32u len);
+     44          extern blt_bool  NvmDoneHook(void);
+     45          #endif
+     46          
+     47          #if (BOOT_NVM_CHECKSUM_HOOKS_ENABLE > 0)
+     48          extern blt_bool  NvmWriteChecksumHook(void);
+     49          extern blt_bool  NvmVerifyChecksumHook(void);
+     50          #endif
+     51          
+     52          
+     53          /************************************************************************************//**
+     54          ** \brief     Initializes the NVM driver.
+     55          ** \return    none.
+     56          **
+     57          ****************************************************************************************/
+     58          void NvmInit(void)
+     59          {
+     60          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+     61            /* give the application a chance to initialize a driver for operating on NVM
+     62             * that is not by default supported by this driver.
+     63             */
+     64            NvmInitHook();
+     65          #endif
+     66          
+     67            /* init the internal driver */
+     68            FlashInit();
+     69          } /*** end of NvmInit ***/
+     70          
+     71          
+     72          /************************************************************************************//**
+     73          ** \brief     Reinitializes the NVM driver. This function is called at the start of each
+     74          **            firmware update as opposed to NvmInit, which is only called once during
+     75          **            power on.
+     76          ** \return    none.
+     77          **
+     78          ****************************************************************************************/
+     79          void NvmReinit(void)
+     80          {
+     81          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+     82            /* give the application a chance to re-initialize a driver for operating on NVM
+     83             * that is not by default supported by this driver.
+     84             */
+     85            NvmReinitHook();
+     86          #endif
+     87          
+     88            /* reinitialize the internal driver */
+     89            FlashReinit();
+     90          } /*** end of NvmReinit ***/
+     91          
+     92          
+     93          /************************************************************************************//**
+     94          ** \brief     Programs the non-volatile memory.
+     95          ** \param     addr Start address.
+     96          ** \param     len  Length in bytes.
+     97          ** \param     data Pointer to the data buffer.
+     98          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+     99          **
+    100          ****************************************************************************************/
+    101          blt_bool NvmWrite(blt_addr addr, blt_int32u len, blt_int8u *data)
+    102          {
+    103          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    104            blt_int8u result = BLT_NVM_NOT_IN_RANGE;
+    105          #endif
+    106          
+    107          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    108            /* give the application a chance to operate on memory that is not by default supported
+    109             * by this driver.
+    110             */
+    111            result = NvmWriteHook(addr, len, data);
+    112          
+    113            /* process the return code */
+    114            if (result == BLT_NVM_OKAY)
+    115            {
+    116              /* data was within range of the additionally supported memory and succesfully
+    117               * programmed, so we are all done.
+    118               */
+    119              return BLT_TRUE;
+    120            }
+    121            else if (result == BLT_NVM_ERROR)
+    122            {
+    123              /* data was within range of the additionally supported memory and attempted to be
+    124               * programmed, but an error occurred, so we can't continue.
+    125               */
+    126              return BLT_FALSE;
+    127            }
+    128          #endif
+    129          
+    130            /* still here so the internal driver should try and perform the program operation */
+    131            return FlashWrite(addr, len, data);
+    132          } /*** end of NvmWrite ***/
+    133          
+    134          
+    135          /************************************************************************************//**
+    136          ** \brief     Erases the non-volatile memory.
+    137          ** \param     addr Start address.
+    138          ** \param     len  Length in bytes.
+    139          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+    140          **
+    141          ****************************************************************************************/
+    142          blt_bool NvmErase(blt_addr addr, blt_int32u len)
+    143          {
+    144          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    145            blt_int8u result = BLT_NVM_NOT_IN_RANGE;
+    146          #endif
+    147          
+    148          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    149            /* give the application a chance to operate on memory that is not by default supported
+    150             * by this driver.
+    151             */
+    152            result = NvmEraseHook(addr, len);
+    153          
+    154            /* process the return code */
+    155            if (result == BLT_NVM_OKAY)
+    156            {
+    157              /* address was within range of the additionally supported memory and succesfully
+    158               * erased, so we are all done.
+    159               */
+    160              return BLT_TRUE;
+    161            }
+    162            else if (result == BLT_NVM_ERROR)
+    163            {
+    164              /* address was within range of the additionally supported memory and attempted to be
+    165               * erased, but an error occurred, so we can't continue.
+    166               */
+    167              return BLT_FALSE;
+    168            }
+    169          #endif
+    170          
+    171            /* still here so the internal driver should try and perform the erase operation */
+    172            return FlashErase(addr, len);
+    173          } /*** end of NvmErase ***/
+    174          
+    175          
+    176          /************************************************************************************//**
+    177          ** \brief     Verifies the checksum, which indicates that a valid user program is
+    178          **            present and can be started.
+    179          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+    180          **
+    181          ****************************************************************************************/
+    182          blt_bool NvmVerifyChecksum(void)
+    183          {
+    184              #if (BOOT_NVM_CHECKSUM_HOOKS_ENABLE > 0)
+    185                /* check checksum using the application specific method. */
+    186                return NvmVerifyChecksumHook();
+    187              #else
+    188                /* check checksum using the interally supported method. */
+    189                return FlashVerifyChecksum();
+    190              #endif
+    191          } /*** end of NvmVerifyChecksum ***/
+    192          
+    193          
+    194          /************************************************************************************//**
+    195          ** \brief     Obtains the base address of the non-volatile memory available to the user
+    196          **            program. This is typically that start of the vector table.
+    197          ** \return    Base address.
+    198          **
+    199          ****************************************************************************************/
+    200          blt_addr NvmGetUserProgBaseAddress(void)
+    201          {
+    202            return FlashGetUserProgBaseAddress();
+    203          } /*** end of NvmGetUserProgBaseAddress ***/
+    204          
+    205          
+    206          /************************************************************************************//**
+    207          ** \brief     Once all erase and programming operations are completed, this
+    208          **            function is called, so at the end of the programming session and
+    209          **            right before a software reset is performed. It is used to calculate
+    210          **            a checksum and program this into flash. This checksum is later used
+    211          **            to determine if a valid user program is present in flash.
+    212          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+    213          **
+    214          ****************************************************************************************/
+    215          blt_bool NvmDone(void)
+    216          {
+    217          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    218            /* give the application's NVM driver a chance to finish up */
+    219            if (NvmDoneHook() == BLT_FALSE)
+    220            {
+    221              /* error so no need to continue */
+    222              return BLT_FALSE;
+    223            }
+    224          #endif
+    225          
+    226          #if (BOOT_NVM_CHECKSUM_HOOKS_ENABLE > 0)
+    227            /* compute and write checksum, using the application specific method. */
+    228            if (NvmWriteChecksumHook() == BLT_FALSE)
+    229            {
+    230              return BLT_FALSE;
+    231            }
+    232          #else
+    233            /* compute and write checksum, which is programmed by the internal driver. */
+    234            if (FlashWriteChecksum() == BLT_FALSE)
+    235            {
+    236              return BLT_FALSE;
+    237            }
+    238          #endif
+    239          
+    240            /* finish up internal driver operations */
+    241            return FlashDone();
+    242          } /*** end of NvmDone ***/
+    243          
+    244          
+    245          /*********************************** end of nvm.c **************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   NvmDone
+         8   -> FlashDone
+         8   -> FlashWriteChecksum
+       8   NvmErase
+         8   -> FlashErase
+       8   NvmGetUserProgBaseAddress
+         8   -> FlashGetUserProgBaseAddress
+       8   NvmInit
+         8   -> FlashInit
+       8   NvmReinit
+         8   -> FlashReinit
+       8   NvmVerifyChecksum
+         8   -> FlashVerifyChecksum
+       8   NvmWrite
+         8   -> FlashWrite
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      20  NvmDone
+       8  NvmErase
+       8  NvmGetUserProgBaseAddress
+       8  NvmInit
+       8  NvmReinit
+       8  NvmVerifyChecksum
+       8  NvmWrite
+
+ 
+ 68 bytes in section .text
+ 
+ 68 bytes of CODE memory
+
+Errors: none
+Warnings: none

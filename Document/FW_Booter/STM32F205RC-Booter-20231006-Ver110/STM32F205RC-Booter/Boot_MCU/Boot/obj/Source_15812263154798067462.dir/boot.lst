@@ -1,0 +1,182 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\boot.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\boot.o.rsp
+#        (R:\STM32F205RC-Booter\Source\boot.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\boot.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\boot.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\boot.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\boot.c
+      1          /************************************************************************************//**
+      2          * \file         Source/boot.c
+      3          * \brief        Bootloader core module source file.
+      4          * \ingroup      Core
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2011  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          
+     34          
+     35          /************************************************************************************//**
+     36          ** \brief     Initializes the bootloader core.
+     37          ** \return    none
+     38          **
+     39          ****************************************************************************************/
+     40          void BootInit(void)
+     41          {
+     42              /* initialize the CPU */
+     43              CpuInit();
+     44              
+     45              /* initialize the watchdog */
+     46              CopInit();
+     47              
+     48              /* initialize the millisecond timer */
+     49              TimerInit();
+     50              
+     51              /* initialize the non-volatile memory driver */
+     52              NvmInit();
+     53              
+     54              #if (BOOT_FILE_SYS_ENABLE > 0)
+     55                /* initialize the file system module */
+     56                FileInit();
+     57              #endif
+     58            
+     59              #if (BOOT_COM_ENABLE > 0)
+     60              /* initialize the communication module */
+     61                ComInit();
+     62              #endif
+     63              
+     64              #if (ADDON_GATEWAY_MOD_ENABLE > 0)
+     65                /* initialize the gateway module */
+     66                GatewayInit();
+     67              #endif
+     68              
+     69              /* initialize the backdoor entry */
+     70              BackDoorInit();
+     71          
+     72          } /*** end of BootInit ***/
+     73          
+     74          
+     75          /************************************************************************************//**
+     76          ** \brief     Task function of the bootloader core that drives the program.
+     77          ** \return    none
+     78          **
+     79          ****************************************************************************************/
+     80          void BootTask(void)
+     81          {
+     82            /* service the watchdog */
+     83            CopService();
+     84            /* update the millisecond timer */
+     85            TimerUpdate();
+     86          #if (BOOT_FILE_SYS_ENABLE > 0)
+     87            /* call worker task for updating firmware from locally attached file storage */
+     88            FileTask();
+     89          #endif /* BOOT_FILE_SYS_ENABLE > 0 */
+     90          #if (BOOT_COM_ENABLE > 0)
+     91            /* process possibly pending communication data */
+     92            ComTask();
+     93          #endif
+     94          #if (ADDON_GATEWAY_MOD_ENABLE > 0)
+     95            /* run the gateway */
+     96            GatewayTask();
+     97          #endif
+     98            /* control the backdoor */
+     99            BackDoorCheck();
+    100          } /*** end of BootTask ***/
+    101          
+    102          
+    103          /*********************************** end of boot.c *************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   BootInit
+         8   -> BackDoorInit
+         8   -> ComInit
+         8   -> CopInit
+         8   -> CpuInit
+         8   -> NvmInit
+         8   -> TimerInit
+       8   BootTask
+         8   -> BackDoorCheck
+         8   -> ComTask
+         8   -> CopService
+         8   -> TimerUpdate
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      28  BootInit
+      20  BootTask
+
+ 
+ 48 bytes in section .text
+ 
+ 48 bytes of CODE memory
+
+Errors: none
+Warnings: none

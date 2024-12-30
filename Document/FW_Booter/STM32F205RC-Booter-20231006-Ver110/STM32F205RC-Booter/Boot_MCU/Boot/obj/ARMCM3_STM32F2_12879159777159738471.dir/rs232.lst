@@ -1,0 +1,375 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\rs232.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\rs232.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\rs232.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\rs232.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\rs232.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\rs232.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\rs232.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/rs232.c
+      3          * \brief        Bootloader RS232 communication interface source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2016  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"  
+     33          /* bootloader generic header          */
+     34          
+     35          #if ( (BOOT_COM_RS232_ENABLE > 0) || (BOOT_DEBUG_UART_ENABLE > 0) )
+     36          
+     37          #include "stm32f2xx.h"                           /* STM32 CPU and HAL header           */
+     38          #include "stm32f2xx_ll_usart.h"                  /* STM32 LL USART header              */
+     39          
+     40          /****************************************************************************************
+     41          * Macro definitions
+     42          ****************************************************************************************/
+     43          /** \brief Timeout time for the reception of a CTO packet. The timer is started upon
+     44           *         reception of the first packet byte.
+     45           */
+     46          #define RS232_CTO_RX_PACKET_TIMEOUT_MS (200u)
+     47          /** \brief Timeout for transmitting a byte in milliseconds. */
+     48          #define RS232_BYTE_TX_TIMEOUT_MS       (10u)
+     49          
+     50          /* map the configured UART channel index to the STM32's USART peripheral */
+     51          #if (BOOT_COM_RS232_CHANNEL_INDEX == 0)
+     52          /** \brief Set UART base address to USART1. */
+     53          #define USART_CHANNEL   USART1
+     54          #elif (BOOT_COM_RS232_CHANNEL_INDEX == 1)
+     55          /** \brief Set UART base address to USART2. */
+     56          #define USART_CHANNEL   USART2
+     57          #elif (BOOT_COM_RS232_CHANNEL_INDEX == 2)
+     58          /** \brief Set UART base address to USART3. */
+     59          #define USART_CHANNEL   USART6                  // dnaprk
+     60          #elif (BOOT_COM_RS232_CHANNEL_INDEX == 3)
+     61          /** \brief Set UART base address to USART4. */
+     62          #define USART_CHANNEL   USART4
+     63          #elif (BOOT_COM_RS232_CHANNEL_INDEX == 4)
+     64          /** \brief Set UART base address to USART5. */
+     65          #define USART_CHANNEL   USART5
+     66          #elif (BOOT_COM_RS232_CHANNEL_INDEX == 5)
+     67          /** \brief Set UART base address to USART6. */
+     68          #define USART_CHANNEL   USART6
+     69          
+     70          #endif
+     71          
+     72          /****************************************************************************************
+     73          * Function prototypes
+     74          ****************************************************************************************/
+     75          static blt_bool Rs232ReceiveByte(blt_int8u *data);
+     76          /* static */void     Rs232TransmitByte(blt_int8u data);
+     77          
+     78          
+     79          /************************************************************************************//**
+     80          ** \brief     Initializes the RS232 communication interface.
+     81          ** \return    none.
+     82          **
+     83          ****************************************************************************************/
+     84          void Rs232Init(void)
+     85          {
+     86            LL_USART_InitTypeDef USART_InitStruct;
+     87          
+     88            /* the current implementation supports USART1 - USART5. throw an assertion error in
+     89             * case a different UART channel is configured.
+     90             */
+     91            ASSERT_CT((BOOT_COM_RS232_CHANNEL_INDEX == 0) ||
+     92                      (BOOT_COM_RS232_CHANNEL_INDEX == 1) ||
+     93                      (BOOT_COM_RS232_CHANNEL_INDEX == 2) ||
+     94                      (BOOT_COM_RS232_CHANNEL_INDEX == 3) ||
+     95                      (BOOT_COM_RS232_CHANNEL_INDEX == 4) ||
+     96                      (BOOT_COM_RS232_CHANNEL_INDEX == 5));
+     97          
+     98            /* disable the UART peripheral */
+     99            LL_USART_Disable(USART_CHANNEL);
+    100            
+    101            /* configure UART peripheral */
+    102            USART_InitStruct.BaudRate = BOOT_COM_RS232_BAUDRATE;  //921600;   //BOOT_COM_RS232_BAUDRATE;
+    103            USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+    104            USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+    105            USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+    106            USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+    107            USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+    108            USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+    109            /* initialize the UART peripheral */
+    110            LL_USART_Init(USART_CHANNEL, &USART_InitStruct);
+    111            LL_USART_ConfigAsyncMode(USART_CHANNEL);
+    112            LL_USART_Enable(USART_CHANNEL);
+    113          } /*** end of Rs232Init ***/
+    114          
+    115          #endif
+    116          
+    117              
+    118          
+    119          
+    120          #if (BOOT_COM_RS232_ENABLE > 0)
+    121          
+    122          /************************************************************************************//**
+    123          ** \brief     Transmits a packet formatted for the communication interface.
+    124          ** \param     data Pointer to byte array with data that it to be transmitted.
+    125          ** \param     len  Number of bytes that are to be transmitted.
+    126          ** \return    none.
+    127          **
+    128          ****************************************************************************************/
+    129          void Rs232TransmitPacket(blt_int8u *data, blt_int8u len)
+    130          {
+    131            blt_int16u data_index;
+    132          
+    133            /* verify validity of the len-paramenter */
+    134            ASSERT_RT(len <= BOOT_COM_RS232_TX_MAX_DATA);
+    135          
+    136            /* first transmit the length of the packet */
+    137            Rs232TransmitByte(len);
+    138          
+    139            /* transmit all the packet bytes one-by-one */
+    140            for (data_index = 0; data_index < len; data_index++)
+    141            {
+    142              /* keep the watchdog happy */
+    143              CopService();
+    144              /* write byte */
+    145              Rs232TransmitByte(data[data_index]);
+    146            }
+    147          } /*** end of Rs232TransmitPacket ***/
+    148          
+    149          
+    150          /************************************************************************************//**
+    151          ** \brief     Receives a communication interface packet if one is present.
+    152          ** \param     data Pointer to byte array where the data is to be stored.
+    153          ** \param     len Pointer where the length of the packet is to be stored.
+    154          ** \return    BLT_TRUE if a packet was received, BLT_FALSE otherwise.
+    155          **
+    156          ****************************************************************************************/
+    157          blt_bool Rs232ReceivePacket(blt_int8u *data, blt_int8u *len)
+    158          {
+    159            static blt_int8u xcpCtoReqPacket[BOOT_COM_RS232_RX_MAX_DATA+1];  /* one extra for length */
+    160            static blt_int8u xcpCtoRxLength;
+    161            static blt_bool  xcpCtoRxInProgress = BLT_FALSE;
+    162            static blt_int32u xcpCtoRxStartTime = 0;
+    163          
+    164            /* start of cto packet received? */
+    165            if (xcpCtoRxInProgress == BLT_FALSE)
+    166            {
+    167              /* store the message length when received */
+    168              if (Rs232ReceiveByte(&xcpCtoReqPacket[0]) == BLT_TRUE)
+    169              {
+    170                if ( (xcpCtoReqPacket[0] > 0) &&
+    171                     (xcpCtoReqPacket[0] <= BOOT_COM_RS232_RX_MAX_DATA) )
+    172                {
+    173                  /* store the start time */
+    174                  xcpCtoRxStartTime = TimerGet();
+    175                  /* reset packet data count */
+    176                  xcpCtoRxLength = 0;
+    177                  /* indicate that a cto packet is being received */
+    178                  xcpCtoRxInProgress = BLT_TRUE;
+    179                }
+    180              }
+    181            }
+    182            else
+    183            {
+    184              /* store the next packet byte */
+    185              if (Rs232ReceiveByte(&xcpCtoReqPacket[xcpCtoRxLength+1]) == BLT_TRUE)
+    186              {
+    187                /* increment the packet data count */
+    188                xcpCtoRxLength++;
+    189          
+    190                /* check to see if the entire packet was received */
+    191                if (xcpCtoRxLength == xcpCtoReqPacket[0])
+    192                {
+    193                  /* copy the packet data */
+    194                  CpuMemCopy((blt_int32u)data, (blt_int32u)&xcpCtoReqPacket[1], xcpCtoRxLength);
+    195                  /* done with cto packet reception */
+    196                  xcpCtoRxInProgress = BLT_FALSE;
+    197                  /* set the packet length */
+    198                  *len = xcpCtoRxLength;
+    199                  /* packet reception complete */
+    200                  return BLT_TRUE;
+    201                }
+    202              }
+    203              else
+    204              {
+    205                /* check packet reception timeout */
+    206                if (TimerGet() > (xcpCtoRxStartTime + RS232_CTO_RX_PACKET_TIMEOUT_MS))
+    207                {
+    208                  /* cancel cto packet reception due to timeout. note that that automaticaly
+    209                   * discards the already received packet bytes, allowing the host to retry.
+    210                   */
+    211                  xcpCtoRxInProgress = BLT_FALSE;
+    212                }
+    213              }
+    214            }
+    215            /* packet reception not yet complete */
+    216            return BLT_FALSE;
+    217          } /*** end of Rs232ReceivePacket ***/
+    218          
+    219          #endif /* BOOT_COM_RS232_ENABLE > 0 */
+    220          
+    221          
+    222          
+    223          #if (BOOT_DEBUG_UART_ENABLE > 0)    // dnpark, for Debugging
+    224          /************************************************************************************//**
+    225          ** \brief     Receives a communication interface byte if one is present.
+    226          ** \param     data Pointer to byte where the data is to be stored.
+    227          ** \return    BLT_TRUE if a byte was received, BLT_FALSE otherwise.
+    228          **
+    229          ****************************************************************************************/
+    230          static blt_bool Rs232ReceiveByte(blt_int8u *data)
+    231          {
+    232            if (LL_USART_IsActiveFlag_RXNE(USART_CHANNEL) != 0)
+    233            {
+    234              /* retrieve and store the newly received byte */
+    235              *data = LL_USART_ReceiveData8(USART_CHANNEL);
+    236              /* all done */
+    237              return BLT_TRUE;
+    238            }
+    239            /* still here to no new byte received */
+    240            return BLT_FALSE;
+    241          } /*** end of Rs232ReceiveByte ***/
+    242          
+    243          
+    244          /************************************************************************************//**
+    245          ** \brief     Transmits a communication interface byte.
+    246          ** \param     data Value of byte that is to be transmitted.
+    247          ** \return    none.
+    248          **
+    249          ****************************************************************************************/
+    250          /* static */ void Rs232TransmitByte(blt_int8u data)
+    251          {
+    252            blt_int32u timeout;
+    253          
+    254            /* write byte to transmit holding register */
+    255            LL_USART_TransmitData8(USART_CHANNEL, data);
+    256            /* set timeout time to wait for transmit completion. */
+    257            timeout = TimerGet() + RS232_BYTE_TX_TIMEOUT_MS;
+    258            /* wait for tx holding register to be empty */
+    259            while (LL_USART_IsActiveFlag_TXE(USART_CHANNEL) == 0)
+    260            {
+    261              /* keep the watchdog happy */
+    262              CopService();
+    263              /* break loop upon timeout. this would indicate a hardware failure. */
+    264              if (TimerGet() > timeout)
+    265              {
+    266                break;
+    267              }
+    268            }
+    269          } /*** end of Rs232TransmitByte ***/
+    270          
+    271          //static blt_int8u testCanDataR[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+    272          
+    273          void Test_FFF(blt_int8u data)
+    274          {
+    275                Rs232TransmitByte(data);
+    276              
+    277          }
+    278          
+    279          
+    280          #endif /* BOOT_DEBUG_UART_ENABLE > 0 */
+    281          
+    282          
+    283          /*********************************** end of rs232.c ************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_USART_ConfigAsyncMode
+       0   LL_USART_Disable
+       0   LL_USART_Enable
+       0   LL_USART_IsActiveFlag_TXE
+       0   LL_USART_TransmitData8
+      40   Rs232Init
+        40   -> LL_USART_ConfigAsyncMode
+        40   -> LL_USART_Disable
+        40   -> LL_USART_Enable
+        40   -> LL_USART_Init
+      16   Rs232TransmitByte
+        16   -> CopService
+        16   -> LL_USART_IsActiveFlag_TXE
+        16   -> LL_USART_TransmitData8
+        16   -> TimerGet
+       8   Test_FFF
+         8   -> Rs232TransmitByte
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable2
+      18  LL_USART_ConfigAsyncMode
+      10  LL_USART_Disable
+      10  LL_USART_Enable
+      10  LL_USART_IsActiveFlag_TXE
+       6  LL_USART_TransmitData8
+      66  Rs232Init
+      46  Rs232TransmitByte
+      10  Test_FFF
+
+ 
+ 180 bytes in section .text
+ 
+ 180 bytes of CODE memory
+
+Errors: none
+Warnings: 1

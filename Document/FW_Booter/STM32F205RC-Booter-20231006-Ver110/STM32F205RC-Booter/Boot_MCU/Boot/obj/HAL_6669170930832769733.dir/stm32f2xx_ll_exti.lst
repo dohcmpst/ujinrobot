@@ -1,0 +1,318 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:18
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_exti.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_exti.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_exti.c
+#        -D USE_HAL_DRIVER -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_exti.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_exti.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_exti.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_exti.c
+      1          /**
+      2            ******************************************************************************
+      3            * @file    stm32f2xx_ll_exti.c
+      4            * @author  MCD Application Team
+      5            * @brief   EXTI LL module driver.
+      6            ******************************************************************************
+      7            * @attention
+      8            *
+      9            * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+     10            * All rights reserved.</center></h2>
+     11            *
+     12            * This software component is licensed by ST under BSD 3-Clause license,
+     13            * the "License"; You may not use this file except in compliance with the
+     14            * License. You may obtain a copy of the License at:
+     15            *                        opensource.org/licenses/BSD-3-Clause
+     16            *
+     17            ******************************************************************************
+     18            */
+     19          
+     20          #if defined(USE_FULL_LL_DRIVER)
+     21          
+     22          /* Includes ------------------------------------------------------------------*/
+     23          #include "stm32f2xx_ll_exti.h"
+     24          #ifdef  USE_FULL_ASSERT
+     25          #include "stm32_assert.h"
+     26          #else
+     27          #define assert_param(expr) ((void)0U)
+     28          #endif
+     29          
+     30          /** @addtogroup STM32F2xx_LL_Driver
+     31            * @{
+     32            */
+     33          
+     34          #if defined (EXTI)
+     35          
+     36          /** @defgroup EXTI_LL EXTI
+     37            * @{
+     38            */
+     39          
+     40          /* Private types -------------------------------------------------------------*/
+     41          /* Private variables ---------------------------------------------------------*/
+     42          /* Private constants ---------------------------------------------------------*/
+     43          /* Private macros ------------------------------------------------------------*/
+     44          /** @addtogroup EXTI_LL_Private_Macros
+     45            * @{
+     46            */
+     47          
+     48          #define IS_LL_EXTI_LINE_0_31(__VALUE__)              (((__VALUE__) & ~LL_EXTI_LINE_ALL_0_31) == 0x00000000U)
+     49          
+     50          #define IS_LL_EXTI_MODE(__VALUE__)                   (((__VALUE__) == LL_EXTI_MODE_IT)            \
+     51                                                             || ((__VALUE__) == LL_EXTI_MODE_EVENT)         \
+     52                                                             || ((__VALUE__) == LL_EXTI_MODE_IT_EVENT))
+     53          
+     54          
+     55          #define IS_LL_EXTI_TRIGGER(__VALUE__)                (((__VALUE__) == LL_EXTI_TRIGGER_NONE)       \
+     56                                                             || ((__VALUE__) == LL_EXTI_TRIGGER_RISING)     \
+     57                                                             || ((__VALUE__) == LL_EXTI_TRIGGER_FALLING)    \
+     58                                                             || ((__VALUE__) == LL_EXTI_TRIGGER_RISING_FALLING))
+     59          
+     60          /**
+     61            * @}
+     62            */
+     63          
+     64          /* Private function prototypes -----------------------------------------------*/
+     65          
+     66          /* Exported functions --------------------------------------------------------*/
+     67          /** @addtogroup EXTI_LL_Exported_Functions
+     68            * @{
+     69            */
+     70          
+     71          /** @addtogroup EXTI_LL_EF_Init
+     72            * @{
+     73            */
+     74          
+     75          /**
+     76            * @brief  De-initialize the EXTI registers to their default reset values.
+     77            * @retval An ErrorStatus enumeration value:
+     78            *          - SUCCESS: EXTI registers are de-initialized
+     79            *          - ERROR: not applicable
+     80            */
+     81          uint32_t LL_EXTI_DeInit(void)
+     82          {
+     83            /* Interrupt mask register set to default reset values */
+     84            LL_EXTI_WriteReg(IMR,   0x00000000U);
+     85            /* Event mask register set to default reset values */
+     86            LL_EXTI_WriteReg(EMR,   0x00000000U);
+     87            /* Rising Trigger selection register set to default reset values */
+     88            LL_EXTI_WriteReg(RTSR,  0x00000000U);
+     89            /* Falling Trigger selection register set to default reset values */
+     90            LL_EXTI_WriteReg(FTSR,  0x00000000U);
+     91            /* Software interrupt event register set to default reset values */
+     92            LL_EXTI_WriteReg(SWIER, 0x00000000U);
+     93            /* Pending register set to default reset values */
+     94            LL_EXTI_WriteReg(PR,    0x007FFFFFU);
+     95          
+     96            return SUCCESS;
+     97          }
+     98          
+     99          /**
+    100            * @brief  Initialize the EXTI registers according to the specified parameters in EXTI_InitStruct.
+    101            * @param  EXTI_InitStruct pointer to a @ref LL_EXTI_InitTypeDef structure.
+    102            * @retval An ErrorStatus enumeration value:
+    103            *          - SUCCESS: EXTI registers are initialized
+    104            *          - ERROR: not applicable
+    105            */
+    106          uint32_t LL_EXTI_Init(LL_EXTI_InitTypeDef *EXTI_InitStruct)
+    107          {
+    108            ErrorStatus status = SUCCESS;
+    109            /* Check the parameters */
+    110            assert_param(IS_LL_EXTI_LINE_0_31(EXTI_InitStruct->Line_0_31));
+    111            assert_param(IS_FUNCTIONAL_STATE(EXTI_InitStruct->LineCommand));
+    112            assert_param(IS_LL_EXTI_MODE(EXTI_InitStruct->Mode));
+    113          
+    114            /* ENABLE LineCommand */
+    115            if (EXTI_InitStruct->LineCommand != DISABLE)
+    116            {
+    117              assert_param(IS_LL_EXTI_TRIGGER(EXTI_InitStruct->Trigger));
+    118          
+    119              /* Configure EXTI Lines in range from 0 to 31 */
+    120              if (EXTI_InitStruct->Line_0_31 != LL_EXTI_LINE_NONE)
+    121              {
+    122                switch (EXTI_InitStruct->Mode)
+    123                {
+    124                  case LL_EXTI_MODE_IT:
+    125                    /* First Disable Event on provided Lines */
+    126                    LL_EXTI_DisableEvent_0_31(EXTI_InitStruct->Line_0_31);
+    127                    /* Then Enable IT on provided Lines */
+    128                    LL_EXTI_EnableIT_0_31(EXTI_InitStruct->Line_0_31);
+    129                    break;
+    130                  case LL_EXTI_MODE_EVENT:
+    131                    /* First Disable IT on provided Lines */
+    132                    LL_EXTI_DisableIT_0_31(EXTI_InitStruct->Line_0_31);
+    133                    /* Then Enable Event on provided Lines */
+    134                    LL_EXTI_EnableEvent_0_31(EXTI_InitStruct->Line_0_31);
+    135                    break;
+    136                  case LL_EXTI_MODE_IT_EVENT:
+    137                    /* Directly Enable IT & Event on provided Lines */
+    138                    LL_EXTI_EnableIT_0_31(EXTI_InitStruct->Line_0_31);
+    139                    LL_EXTI_EnableEvent_0_31(EXTI_InitStruct->Line_0_31);
+    140                    break;
+    141                  default:
+    142                    status = ERROR;
+    143                    break;
+    144                }
+    145                if (EXTI_InitStruct->Trigger != LL_EXTI_TRIGGER_NONE)
+    146                {
+    147                  switch (EXTI_InitStruct->Trigger)
+    148                  {
+    149                    case LL_EXTI_TRIGGER_RISING:
+    150                      /* First Disable Falling Trigger on provided Lines */
+    151                      LL_EXTI_DisableFallingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    152                      /* Then Enable Rising Trigger on provided Lines */
+    153                      LL_EXTI_EnableRisingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    154                      break;
+    155                    case LL_EXTI_TRIGGER_FALLING:
+    156                      /* First Disable Rising Trigger on provided Lines */
+    157                      LL_EXTI_DisableRisingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    158                      /* Then Enable Falling Trigger on provided Lines */
+    159                      LL_EXTI_EnableFallingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    160                      break;
+    161                    case LL_EXTI_TRIGGER_RISING_FALLING:
+    162                      LL_EXTI_EnableRisingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    163                      LL_EXTI_EnableFallingTrig_0_31(EXTI_InitStruct->Line_0_31);
+    164                      break;
+    165                    default:
+    166                      status = ERROR;
+    167                      break;
+    168                  }
+    169                }
+    170              }
+    171            }
+    172            /* DISABLE LineCommand */
+    173            else
+    174            {
+    175              /* De-configure EXTI Lines in range from 0 to 31 */
+    176              LL_EXTI_DisableIT_0_31(EXTI_InitStruct->Line_0_31);
+    177              LL_EXTI_DisableEvent_0_31(EXTI_InitStruct->Line_0_31);
+    178            }
+    179            return status;
+    180          }
+    181          
+    182          /**
+    183            * @brief  Set each @ref LL_EXTI_InitTypeDef field to default value.
+    184            * @param  EXTI_InitStruct Pointer to a @ref LL_EXTI_InitTypeDef structure.
+    185            * @retval None
+    186            */
+    187          void LL_EXTI_StructInit(LL_EXTI_InitTypeDef *EXTI_InitStruct)
+    188          {
+    189            EXTI_InitStruct->Line_0_31      = LL_EXTI_LINE_NONE;
+    190            EXTI_InitStruct->LineCommand    = DISABLE;
+    191            EXTI_InitStruct->Mode           = LL_EXTI_MODE_IT;
+    192            EXTI_InitStruct->Trigger        = LL_EXTI_TRIGGER_FALLING;
+    193          }
+    194          
+    195          /**
+    196            * @}
+    197            */
+    198          
+    199          /**
+    200            * @}
+    201            */
+    202          
+    203          /**
+    204            * @}
+    205            */
+    206          
+    207          #endif /* defined (EXTI) */
+    208          
+    209          /**
+    210            * @}
+    211            */
+    212          
+    213          #endif /* USE_FULL_LL_DRIVER */
+    214          
+    215          /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_EXTI_DeInit
+       0   LL_EXTI_DisableEvent_0_31
+       0   LL_EXTI_DisableFallingTrig_0_31
+       0   LL_EXTI_DisableIT_0_31
+       0   LL_EXTI_DisableRisingTrig_0_31
+       0   LL_EXTI_EnableEvent_0_31
+       0   LL_EXTI_EnableFallingTrig_0_31
+       0   LL_EXTI_EnableIT_0_31
+       0   LL_EXTI_EnableRisingTrig_0_31
+      16   LL_EXTI_Init
+        16   -> LL_EXTI_DisableEvent_0_31
+        16   -> LL_EXTI_DisableFallingTrig_0_31
+        16   -> LL_EXTI_DisableIT_0_31
+        16   -> LL_EXTI_DisableRisingTrig_0_31
+        16   -> LL_EXTI_EnableEvent_0_31
+        16   -> LL_EXTI_EnableFallingTrig_0_31
+        16   -> LL_EXTI_EnableIT_0_31
+        16   -> LL_EXTI_EnableRisingTrig_0_31
+       0   LL_EXTI_StructInit
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable8
+       4  ??DataTable8_1
+       4  ??DataTable8_2
+       4  ??DataTable8_3
+       4  ??DataTable8_4
+       4  ??DataTable8_5
+       4  ??DataTable8_6
+      40  LL_EXTI_DeInit
+      12  LL_EXTI_DisableEvent_0_31
+      12  LL_EXTI_DisableFallingTrig_0_31
+      12  LL_EXTI_DisableIT_0_31
+      12  LL_EXTI_DisableRisingTrig_0_31
+      10  LL_EXTI_EnableEvent_0_31
+      10  LL_EXTI_EnableFallingTrig_0_31
+      10  LL_EXTI_EnableIT_0_31
+      10  LL_EXTI_EnableRisingTrig_0_31
+     162  LL_EXTI_Init
+      18  LL_EXTI_StructInit
+
+ 
+ 336 bytes in section .text
+ 
+ 336 bytes of CODE memory
+
+Errors: none
+Warnings: none

@@ -1,0 +1,578 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:19
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Boot_MCU\Boot\hooks.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\hooks.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\hooks.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\hooks.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\hooks.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\hooks.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\hooks.c
+      1          /************************************************************************************//**
+      2          * \file         Demo/ARMCM3_STM32F2_Olimex_STM32P207_IAR/Boot/hooks.c
+      3          * \brief        Bootloader callback source file.
+      4          * \ingroup      Boot_ARMCM3_STM32F2_Olimex_STM32P207_IAR
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2018  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "led.h"                                 /* LED driver header                  */
+     34          #include "stm32f2xx.h"                           /* STM32 registers and drivers        */
+     35          #include "stm32f2xx_ll_gpio.h"                   /* STM32 LL GPIO header               */
+     36          #include "stm32f2xx_ll_usart.h"                  /* STM32 LL USART header              */
+     37          
+     38          
+     39          /****************************************************************************************
+     40          *   B A C K D O O R   E N T R Y   H O O K   F U N C T I O N S
+     41          ****************************************************************************************/
+     42          
+     43          #if (BOOT_BACKDOOR_HOOKS_ENABLE > 0)
+     44          /************************************************************************************//**
+     45          ** \brief     Initializes the backdoor entry option.
+     46          ** \return    none.
+     47          **
+     48          ****************************************************************************************/
+     49          void BackDoorInitHook(void)
+     50          {
+     51          } /*** end of BackDoorInitHook ***/
+     52          
+     53          
+     54          /************************************************************************************//**
+     55          ** \brief     Checks if a backdoor entry is requested.
+     56          ** \return    BLT_TRUE if the backdoor entry is requested, BLT_FALSE otherwise.
+     57          **
+     58          ****************************************************************************************/
+     59          blt_bool BackDoorEntryHook(void)
+     60          {
+     61            /* default implementation always activates the bootloader after a reset */
+     62            return BLT_TRUE;
+     63          } /*** end of BackDoorEntryHook ***/
+     64          #endif /* BOOT_BACKDOOR_HOOKS_ENABLE > 0 */
+     65          
+     66          
+     67          /****************************************************************************************
+     68          *   C P U   D R I V E R   H O O K   F U N C T I O N S
+     69          ****************************************************************************************/
+     70          
+     71          #if (BOOT_CPU_USER_PROGRAM_START_HOOK > 0)
+     72          /************************************************************************************//**
+     73          ** \brief     Callback that gets called when the bootloader is about to exit and
+     74          **            hand over control to the user program. This is the last moment that
+     75          **            some final checking can be performed and if necessary prevent the
+     76          **            bootloader from activiting the user program.
+     77          ** \return    BLT_TRUE if it is okay to start the user program, BLT_FALSE to keep
+     78          **            keep the bootloader active.
+     79          **
+     80          ****************************************************************************************/
+     81          blt_bool CpuUserProgramStartHook(void)
+     82          {
+     83            /* additional and optional backdoor entry through the pushbutton on the board. to
+     84             * force the bootloader to stay active after reset, keep it pressed during reset.
+     85             */
+     86            if (LL_GPIO_IsInputPinSet(GPIOC, LL_GPIO_PIN_13) == 0)
+     87            {
+     88              /* pushbutton pressed, so do not start the user program and keep the
+     89               * bootloader active instead.
+     90               */
+     91              return BLT_FALSE;
+     92            }
+     93            /* clean up the LED driver */
+     94            LedBlinkExit();
+     95            /*  okay to start the user program.*/
+     96            return BLT_TRUE;
+     97          } /*** end of CpuUserProgramStartHook ***/
+     98          #endif /* BOOT_CPU_USER_PROGRAM_START_HOOK > 0 */
+     99          
+    100          
+    101          /****************************************************************************************
+    102          *   W A T C H D O G   D R I V E R   H O O K   F U N C T I O N S
+    103          ****************************************************************************************/
+    104          
+    105          #if (BOOT_COP_HOOKS_ENABLE > 0)
+    106          /************************************************************************************//**
+    107          ** \brief     Callback that gets called at the end of the internal COP driver
+    108          **            initialization routine. It can be used to configure and enable the
+    109          **            watchdog.
+    110          ** \return    none.
+    111          **
+    112          ****************************************************************************************/
+    113          void CopInitHook(void)
+    114          {
+    115            /* this function is called upon initialization. might as well use it to initialize
+    116             * the LED driver. It is kind of a visual watchdog anyways.
+    117             */
+    118            LedBlinkInit(100);
+    119          } /*** end of CopInitHook ***/
+    120          
+    121          
+    122          /************************************************************************************//**
+    123          ** \brief     Callback that gets called at the end of the internal COP driver
+    124          **            service routine. This gets called upon initialization and during
+    125          **            potential long lasting loops and routine. It can be used to service
+    126          **            the watchdog to prevent a watchdog reset.
+    127          ** \return    none.
+    128          **
+    129          ****************************************************************************************/
+    130          void CopServiceHook(void)
+    131          {
+    132            /* run the LED blink task. this is a better place to do it than in the main() program
+    133             * loop. certain operations such as flash erase can take a long time, which would cause
+    134             * a blink interval to be skipped. this function is also called during such operations,
+    135             * so no blink intervals will be skipped when calling the LED blink task here.
+    136             */
+    137            LedBlinkTask();
+    138          } /*** end of CopServiceHook ***/
+    139          #endif /* BOOT_COP_HOOKS_ENABLE > 0 */
+    140          
+    141          
+    142          /****************************************************************************************
+    143          *   N O N - V O L A T I L E   M E M O R Y   D R I V E R   H O O K   F U N C T I O N S
+    144          ****************************************************************************************/
+    145          
+    146          #if (BOOT_NVM_HOOKS_ENABLE > 0)
+    147          /************************************************************************************//**
+    148          ** \brief     Callback that gets called at the start of the internal NVM driver
+    149          **            initialization routine.
+    150          ** \return    none.
+    151          **
+    152          ****************************************************************************************/
+    153          void NvmInitHook(void)
+    154          {
+    155          } /*** end of NvmInitHook ***/
+    156          
+    157          
+    158          /************************************************************************************//**
+    159          ** \brief     Callback that gets called at the start of a firmware update to reinitialize
+    160          **            the NVM driver.
+    161          ** \return    none.
+    162          **
+    163          ****************************************************************************************/
+    164          void NvmReinitHook(void)
+    165          {
+    166          } /*** end of NvmReinitHook ***/
+    167          
+    168          
+    169          /************************************************************************************//**
+    170          ** \brief     Callback that gets called at the start of the NVM driver write
+    171          **            routine. It allows additional memory to be operated on. If the address
+    172          **            is not within the range of the additional memory, then
+    173          **            BLT_NVM_NOT_IN_RANGE must be returned to indicate that the data hasn't
+    174          **            been written yet.
+    175          ** \param     addr Start address.
+    176          ** \param     len  Length in bytes.
+    177          ** \param     data Pointer to the data buffer.
+    178          ** \return    BLT_NVM_OKAY if successful, BLT_NVM_NOT_IN_RANGE if the address is
+    179          **            not within the supported memory range, or BLT_NVM_ERROR is the write
+    180          **            operation failed.
+    181          **
+    182          ****************************************************************************************/
+    183          blt_int8u NvmWriteHook(blt_addr addr, blt_int32u len, blt_int8u *data)
+    184          {
+    185            return BLT_NVM_NOT_IN_RANGE;
+    186          } /*** end of NvmWriteHook ***/
+    187          
+    188          
+    189          /************************************************************************************//**
+    190          ** \brief     Callback that gets called at the start of the NVM driver erase
+    191          **            routine. It allows additional memory to be operated on. If the address
+    192          **            is not within the range of the additional memory, then
+    193          **            BLT_NVM_NOT_IN_RANGE must be returned to indicate that the memory
+    194          **            hasn't been erased yet.
+    195          ** \param     addr Start address.
+    196          ** \param     len  Length in bytes.
+    197          ** \return    BLT_NVM_OKAY if successful, BLT_NVM_NOT_IN_RANGE if the address is
+    198          **            not within the supported memory range, or BLT_NVM_ERROR is the erase
+    199          **            operation failed.
+    200          **
+    201          ****************************************************************************************/
+    202          blt_int8u NvmEraseHook(blt_addr addr, blt_int32u len)
+    203          {
+    204            return BLT_NVM_NOT_IN_RANGE;
+    205          } /*** end of NvmEraseHook ***/
+    206          
+    207          
+    208          /************************************************************************************//**
+    209          ** \brief     Callback that gets called at the end of the NVM programming session.
+    210          ** \return    BLT_TRUE is successful, BLT_FALSE otherwise.
+    211          **
+    212          ****************************************************************************************/
+    213          blt_bool NvmDoneHook(void)
+    214          {
+    215            return BLT_TRUE;
+    216          } /*** end of NvmDoneHook ***/
+    217          #endif /* BOOT_NVM_HOOKS_ENABLE > 0 */
+    218          
+    219          
+    220          #if (BOOT_NVM_CHECKSUM_HOOKS_ENABLE > 0)
+    221          /************************************************************************************//**
+    222          ** \brief     Verifies the checksum, which indicates that a valid user program is
+    223          **            present and can be started.
+    224          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+    225          **
+    226          ****************************************************************************************/
+    227          blt_bool NvmVerifyChecksumHook(void)
+    228          {
+    229            return BLT_TRUE;
+    230          } /*** end of NvmVerifyChecksum ***/
+    231          
+    232          
+    233          /************************************************************************************//**
+    234          ** \brief     Writes a checksum of the user program to non-volatile memory. This is
+    235          **            performed once the entire user program has been programmed. Through
+    236          **            the checksum, the bootloader can check if a valid user programming is
+    237          **            present and can be started.
+    238          ** \return    BLT_TRUE if successful, BLT_FALSE otherwise.
+    239          **
+    240          ****************************************************************************************/
+    241          blt_bool NvmWriteChecksumHook(void)
+    242          {
+    243            return BLT_TRUE;
+    244          }
+    245          #endif /* BOOT_NVM_CHECKSUM_HOOKS_ENABLE > 0 */
+    246          
+    247          
+    248          /****************************************************************************************
+    249          *   F I L E   S Y S T E M   I N T E R F A C E   H O O K   F U N C T I O N S
+    250          ****************************************************************************************/
+    251          
+    252          #if (BOOT_FILE_SYS_ENABLE > 0)
+    253          
+    254          /****************************************************************************************
+    255          * Constant data declarations
+    256          ****************************************************************************************/
+    257          /** \brief Firmware filename. */
+    258          static const blt_char firmwareFilename[] = "/demoprog_stm32f207.srec";
+    259          
+    260          
+    261          /****************************************************************************************
+    262          * Local data declarations
+    263          ****************************************************************************************/
+    264          #if (BOOT_FILE_LOGGING_ENABLE > 0)
+    265          /** \brief Data structure for grouping log-file related information. */
+    266          static struct
+    267          {
+    268            FIL      handle;                  /**< FatFS handle to the log-file.                 */
+    269            blt_bool canUse;                  /**< Flag to indicate if the log-file can be used. */
+    270          } logfile;
+    271          #endif
+    272          
+    273          
+    274          /************************************************************************************//**
+    275          ** \brief     Callback that gets called to check whether a firmware update from
+    276          **            local file storage should be started. This could for example be when
+    277          **            a switch is pressed, when a certain file is found on the local file
+    278          **            storage, etc.
+    279          ** \return    BLT_TRUE if a firmware update is requested, BLT_FALSE otherwise.
+    280          **
+    281          ****************************************************************************************/
+    282          blt_bool FileIsFirmwareUpdateRequestedHook(void)
+    283          {
+    284            FILINFO fileInfoObject = { 0 }; /* needs to be zeroed according to f_stat docs */;
+    285          
+    286            /* Current example implementation looks for a predetermined firmware file on the
+    287             * SD-card. If the SD-card is accessible and the firmware file was found the firmware
+    288             * update is started. When successfully completed, the firmware file is deleted.
+    289             * During the firmware update, progress information is written to a file called
+    290             * bootlog.txt and additionally outputted on UART @57600 bps for debugging purposes.
+    291             */
+    292            /* check if firmware file is present and SD-card is accessible */
+    293            if (f_stat(firmwareFilename, &fileInfoObject) == FR_OK)
+    294            {
+    295              /* check if the filesize is valid and that it is not a directory */
+    296              if ( (fileInfoObject.fsize > 0) && (!(fileInfoObject.fattrib & AM_DIR)) )
+    297              {
+    298                /* all conditions are met to start a firmware update from local file storage */
+    299                return BLT_TRUE;
+    300              }
+    301            }
+    302            /* still here so no firmware update request is pending */
+    303            return BLT_FALSE;
+    304          } /*** end of FileIsFirmwareUpdateRequestedHook ***/
+    305          
+    306          
+    307          /************************************************************************************//**
+    308          ** \brief     Callback to obtain the filename of the firmware file that should be
+    309          **            used during the firmware update from the local file storage. This
+    310          **            hook function is called at the beginning of the firmware update from
+    311          **            local storage sequence.
+    312          ** \return    valid firmware filename with full path or BLT_NULL.
+    313          **
+    314          ****************************************************************************************/
+    315          const blt_char *FileGetFirmwareFilenameHook(void)
+    316          {
+    317            return firmwareFilename;
+    318          } /*** end of FileGetFirmwareFilenameHook ***/
+    319          
+    320          
+    321          #if (BOOT_FILE_STARTED_HOOK_ENABLE > 0)
+    322          /************************************************************************************//**
+    323          ** \brief     Callback that gets called to inform the application that a firmware
+    324          **            update from local storage just started.
+    325          ** \return    none.
+    326          **
+    327          ****************************************************************************************/
+    328          void FileFirmwareUpdateStartedHook(void)
+    329          {
+    330            #if (BOOT_FILE_LOGGING_ENABLE > 0)
+    331            /* create/overwrite the logfile */
+    332            logfile.canUse = BLT_FALSE;
+    333            if (f_open(&logfile.handle, "/bootlog.txt", FA_CREATE_ALWAYS | FA_WRITE) == FR_OK)
+    334            {
+    335              logfile.canUse = BLT_TRUE;
+    336            }
+    337            #endif
+    338          } /*** end of FileFirmwareUpdateStartedHook ***/
+    339          #endif /* BOOT_FILE_STARTED_HOOK_ENABLE > 0 */
+    340          
+    341          
+    342          #if (BOOT_FILE_COMPLETED_HOOK_ENABLE > 0)
+    343          /************************************************************************************//**
+    344          ** \brief     Callback that gets called to inform the application that a firmware
+    345          **            update was successfully completed.
+    346          ** \return    none.
+    347          **
+    348          ****************************************************************************************/
+    349          void FileFirmwareUpdateCompletedHook(void)
+    350          {
+    351            #if (BOOT_FILE_LOGGING_ENABLE > 0)
+    352            blt_int32u timeoutTime;
+    353          
+    354            /* close the log file */
+    355            if (logfile.canUse == BLT_TRUE)
+    356            {
+    357              f_close(&logfile.handle);
+    358            }
+    359            /* wait for all logging related transmission to complete with a maximum wait time of
+    360             * 100ms.
+    361             */
+    362            timeoutTime = TimerGet() + 100;
+    363            while (LL_USART_IsActiveFlag_TC(USART3) == 0)
+    364            {
+    365              /* check for timeout */
+    366              if (TimerGet() > timeoutTime)
+    367              {
+    368                break;
+    369              }
+    370            }
+    371            #endif
+    372            /* now delete the firmware file from the disk since the update was successful */
+    373            f_unlink(firmwareFilename);
+    374          } /*** end of FileFirmwareUpdateCompletedHook ***/
+    375          #endif /* BOOT_FILE_COMPLETED_HOOK_ENABLE > 0 */
+    376          
+    377          
+    378          #if (BOOT_FILE_ERROR_HOOK_ENABLE > 0)
+    379          /************************************************************************************//**
+    380          ** \brief     Callback that gets called in case an error occurred during a firmware
+    381          **            update. Refer to <file.h> for a list of available error codes.
+    382          ** \return    none.
+    383          **
+    384          ****************************************************************************************/
+    385          void FileFirmwareUpdateErrorHook(blt_int8u error_code)
+    386          {
+    387            #if (BOOT_FILE_LOGGING_ENABLE > 0)
+    388            /* error detected which stops the firmware update, so close the log file */
+    389            if (logfile.canUse == BLT_TRUE)
+    390            {
+    391              f_close(&logfile.handle);
+    392            }
+    393            #endif
+    394          } /*** end of FileFirmwareUpdateErrorHook ***/
+    395          #endif /* BOOT_FILE_ERROR_HOOK_ENABLE > 0 */
+    396          
+    397          
+    398          #if (BOOT_FILE_LOGGING_ENABLE > 0)
+    399          /************************************************************************************//**
+    400          ** \brief     Callback that gets called each time new log information becomes
+    401          **            available during a firmware update.
+    402          ** \param     info_string Pointer to a character array with the log entry info.
+    403          ** \return    none.
+    404          **
+    405          ****************************************************************************************/
+    406          void FileFirmwareUpdateLogHook(blt_char *info_string)
+    407          {
+    408            blt_int32u timeoutTime;
+    409          
+    410            /* write the string to the log file */
+    411            if (logfile.canUse == BLT_TRUE)
+    412            {
+    413              if (f_puts(info_string, &logfile.handle) < 0)
+    414              {
+    415                logfile.canUse = BLT_FALSE;
+    416                f_close(&logfile.handle);
+    417              }
+    418            }
+    419            /* echo all characters in the string on UART */
+    420            while(*info_string != '\0')
+    421            {
+    422              /* write byte to transmit holding register */
+    423              LL_USART_TransmitData8(USART3, *info_string);
+    424              /* set timeout time to wait for transmit completion. */
+    425              timeoutTime = TimerGet() + 10;
+    426              /* wait for tx holding register to be empty */
+    427              while (LL_USART_IsActiveFlag_TXE(USART3) == 0)
+    428              {
+    429                /* keep the watchdog happy */
+    430                CopService();
+    431                /* break loop upon timeout. this would indicate a hardware failure. */
+    432                if (TimerGet() > timeoutTime)
+    433                {
+    434                  break;
+    435                }
+    436              }
+    437              /* point to the next character in the string */
+    438              info_string++;
+    439            }
+    440          } /*** end of FileFirmwareUpdateLogHook ***/
+    441          #endif /* BOOT_FILE_LOGGING_ENABLE > 0 */
+    442          
+    443          
+    444          #endif /* BOOT_FILE_SYS_ENABLE > 0 */
+    445          
+    446          
+    447          /****************************************************************************************
+    448          *   S E E D / K E Y   S E C U R I T Y   H O O K   F U N C T I O N S
+    449          ****************************************************************************************/
+    450          
+    451          #if (BOOT_XCP_SEED_KEY_ENABLE > 0)
+    452          /************************************************************************************//**
+    453          ** \brief     Provides a seed to the XCP master that will be used for the key
+    454          **            generation when the master attempts to unlock the specified resource.
+    455          **            Called by the GET_SEED command.
+    456          ** \param     resource  Resource that the seed if requested for (XCP_RES_XXX).
+    457          ** \param     seed      Pointer to byte buffer wher the seed will be stored.
+    458          ** \return    Length of the seed in bytes.
+    459          **
+    460          ****************************************************************************************/
+    461          blt_int8u XcpGetSeedHook(blt_int8u resource, blt_int8u *seed)
+    462          {
+    463            /* request seed for unlocking ProGraMming resource */
+    464            if ((resource & XCP_RES_PGM) != 0)
+    465            {
+    466              seed[0] = 0x55;
+    467            }
+    468          
+    469            /* return seed length */
+    470            return 1;
+    471          } /*** end of XcpGetSeedHook ***/
+    472          
+    473          
+    474          /************************************************************************************//**
+    475          ** \brief     Called by the UNLOCK command and checks if the key to unlock the
+    476          **            specified resource was correct. If so, then the resource protection
+    477          **            will be removed.
+    478          ** \param     resource  resource to unlock (XCP_RES_XXX).
+    479          ** \param     key       pointer to the byte buffer holding the key.
+    480          ** \param     len       length of the key in bytes.
+    481          ** \return    1 if the key was correct, 0 otherwise.
+    482          **
+    483          ****************************************************************************************/
+    484          blt_int8u XcpVerifyKeyHook(blt_int8u resource, blt_int8u *key, blt_int8u len)
+    485          {
+    486            /* suppress compiler warning for unused parameter */
+    487            len = len;
+    488          
+    489            /* the example key algorithm in "libseednkey.dll" works as follows:
+    490             *  - PGM will be unlocked if key = seed - 1
+    491             */
+    492          
+    493            /* check key for unlocking ProGraMming resource */
+    494            if ((resource == XCP_RES_PGM) && (key[0] == (0x55-1)))
+    495            {
+    496              /* correct key received for unlocking PGM resource */
+    497              return 1;
+    498            }
+    499          
+    500            /* still here so key incorrect */
+    501            return 0;
+    502          } /*** end of XcpVerifyKeyHook ***/
+    503          #endif /* BOOT_XCP_SEED_KEY_ENABLE > 0 */
+    504          
+    505          
+    506          /*********************************** end of hooks.c ************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   CopInitHook
+         8   -> LedBlinkInit
+       8   CopServiceHook
+         8   -> LedBlinkTask
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+      10  CopInitHook
+       8  CopServiceHook
+
+ 
+ 18 bytes in section .text
+ 
+ 18 bytes of CODE memory
+
+Errors: none
+Warnings: none

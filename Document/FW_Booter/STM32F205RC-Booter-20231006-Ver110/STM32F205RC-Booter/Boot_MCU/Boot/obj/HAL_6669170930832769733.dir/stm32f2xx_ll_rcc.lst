@@ -1,0 +1,572 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:19
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_rcc.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_rcc.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_rcc.c
+#        -D USE_HAL_DRIVER -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_rcc.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_rcc.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_rcc.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_rcc.c
+      1          /**
+      2            ******************************************************************************
+      3            * @file    stm32f2xx_ll_rcc.c
+      4            * @author  MCD Application Team
+      5            * @brief   RCC LL module driver.
+      6            ******************************************************************************
+      7            * @attention
+      8            *
+      9            * <h2><center>&copy; Copyright (c) 2017 STMicroelectronics.
+     10            * All rights reserved.</center></h2>
+     11            *
+     12            * This software component is licensed by ST under BSD 3-Clause license,
+     13            * the "License"; You may not use this file except in compliance with the
+     14            * License. You may obtain a copy of the License at:
+     15            *                        opensource.org/licenses/BSD-3-Clause
+     16            *
+     17            ******************************************************************************
+     18            */
+     19          
+     20          #if defined(USE_FULL_LL_DRIVER)
+     21          
+     22          /* Includes ------------------------------------------------------------------*/
+     23          #include "stm32f2xx_ll_rcc.h"
+     24          #ifdef  USE_FULL_ASSERT
+     25            #include "stm32_assert.h"
+     26          #else
+     27            #define assert_param(expr) ((void)0U)
+     28          #endif
+     29          /** @addtogroup STM32F2xx_LL_Driver
+     30            * @{
+     31            */
+     32          
+     33          #if defined(RCC)
+     34          
+     35          /** @addtogroup RCC_LL
+     36            * @{
+     37            */
+     38          
+     39          /* Private types -------------------------------------------------------------*/
+     40          /* Private variables ---------------------------------------------------------*/
+     41          /* Private constants ---------------------------------------------------------*/
+     42          /* Private macros ------------------------------------------------------------*/
+     43          /** @addtogroup RCC_LL_Private_Macros
+     44            * @{
+     45            */
+     46          #define IS_LL_RCC_I2S_CLKSOURCE(__VALUE__)    (((__VALUE__) == LL_RCC_I2S1_CLKSOURCE))
+     47          /**
+     48            * @}
+     49            */
+     50          
+     51          /* Private function prototypes -----------------------------------------------*/
+     52          /** @defgroup RCC_LL_Private_Functions RCC Private functions
+     53            * @{
+     54            */
+     55          uint32_t RCC_GetSystemClockFreq(void);
+     56          uint32_t RCC_GetHCLKClockFreq(uint32_t SYSCLK_Frequency);
+     57          uint32_t RCC_GetPCLK1ClockFreq(uint32_t HCLK_Frequency);
+     58          uint32_t RCC_GetPCLK2ClockFreq(uint32_t HCLK_Frequency);
+     59          uint32_t RCC_PLL_GetFreqDomain_SYS(void);
+     60          uint32_t RCC_PLL_GetFreqDomain_48M(void);
+     61          uint32_t RCC_PLLI2S_GetFreqDomain_I2S(void);
+     62          /**
+     63            * @}
+     64            */
+     65          
+     66          /* Exported functions --------------------------------------------------------*/
+     67          /** @addtogroup RCC_LL_Exported_Functions
+     68            * @{
+     69            */
+     70          
+     71          /** @addtogroup RCC_LL_EF_Init
+     72            * @{
+     73            */
+     74          
+     75          /**
+     76            * @brief  Reset the RCC clock configuration to the default reset state.
+     77            * @note   The default reset state of the clock configuration is given below:
+     78            *         - HSI ON and used as system clock source
+     79            *         - HSE, PLL, PLLI2S OFF
+     80            *         - AHB, APB1 and APB2 prescaler set to 1.
+     81            *         - CSS, MCO OFF
+     82            *         - All interrupts disabled
+     83            * @note   This function doesn't modify the configuration of the
+     84            *         - Peripheral clocks
+     85            *         - LSI, LSE and RTC clocks
+     86            * @retval An ErrorStatus enumeration value:
+     87            *          - SUCCESS: RCC registers are de-initialized
+     88            *          - ERROR: not applicable
+     89            */
+     90          ErrorStatus LL_RCC_DeInit(void)
+     91          {
+     92            uint32_t vl_mask = 0U;
+     93          
+     94            /* Set HSION bit */
+     95            LL_RCC_HSI_Enable();
+     96          
+     97            /* Wait for HSI READY bit */
+     98            while(LL_RCC_HSI_IsReady() != 1U)
+     99            {}
+    100          
+    101            /* Reset CFGR register */
+    102            LL_RCC_WriteReg(CFGR, 0x00000000U);
+    103          
+    104            vl_mask = 0xFFFFFFFFU;
+    105          
+    106            /* Reset HSEON, PLLSYSON bits */
+    107            CLEAR_BIT(vl_mask, (RCC_CR_HSEON | RCC_CR_HSEBYP | RCC_CR_PLLON | RCC_CR_CSSON));
+    108          
+    109            /* Reset PLLI2SON bit */
+    110            CLEAR_BIT(vl_mask, RCC_CR_PLLI2SON);
+    111          
+    112            /* Write new mask in CR register */
+    113            LL_RCC_WriteReg(CR, vl_mask);
+    114          
+    115            /* Set HSITRIM bits to the reset value*/
+    116            LL_RCC_HSI_SetCalibTrimming(0x10U);
+    117          
+    118            /* Wait for PLL READY bit to be reset */
+    119            while(LL_RCC_PLL_IsReady() != 0U)
+    120            {}
+    121          
+    122            /* Wait for PLLI2S READY bit to be reset */
+    123            while(LL_RCC_PLLI2S_IsReady() != 0U)
+    124            {}
+    125          
+    126            /* Reset PLLCFGR register */
+    127            LL_RCC_WriteReg(PLLCFGR, 0x24003010U);
+    128          
+    129            /* Reset PLLI2SCFGR register */
+    130            LL_RCC_WriteReg(PLLI2SCFGR, 0x20003000U);
+    131          
+    132            /* Disable all interrupts */
+    133            LL_RCC_WriteReg(CIR, 0x00000000U);
+    134          
+    135            /* Clear reset flags */
+    136            LL_RCC_ClearResetFlags();
+    137          
+    138            return SUCCESS;
+    139          }
+    140          
+    141          /**
+    142            * @}
+    143            */
+    144          
+    145          /** @addtogroup RCC_LL_EF_Get_Freq
+    146            * @brief  Return the frequencies of different on chip clocks;  System, AHB, APB1 and APB2 buses clocks
+    147            *         and different peripheral clocks available on the device.
+    148            * @note   If SYSCLK source is HSI, function returns values based on HSI_VALUE(**)
+    149            * @note   If SYSCLK source is HSE, function returns values based on HSE_VALUE(***)
+    150            * @note   If SYSCLK source is PLL, function returns values based on HSE_VALUE(***)
+    151            *         or HSI_VALUE(**) multiplied/divided by the PLL factors.
+    152            * @note   (**) HSI_VALUE is a constant defined in this file (default value
+    153            *              16 MHz) but the real value may vary depending on the variations
+    154            *              in voltage and temperature.
+    155            * @note   (***) HSE_VALUE is a constant defined in this file (default value
+    156            *               25 MHz), user has to ensure that HSE_VALUE is same as the real
+    157            *               frequency of the crystal used. Otherwise, this function may
+    158            *               have wrong result.
+    159            * @note   The result of this function could be incorrect when using fractional
+    160            *         value for HSE crystal.
+    161            * @note   This function can be used by the user application to compute the
+    162            *         baud-rate for the communication peripherals or configure other parameters.
+    163            * @{
+    164            */
+    165          
+    166          /**
+    167            * @brief  Return the frequencies of different on chip clocks;  System, AHB, APB1 and APB2 buses clocks
+    168            * @note   Each time SYSCLK, HCLK, PCLK1 and/or PCLK2 clock changes, this function
+    169            *         must be called to update structure fields. Otherwise, any
+    170            *         configuration based on this function will be incorrect.
+    171            * @param  RCC_Clocks pointer to a @ref LL_RCC_ClocksTypeDef structure which will hold the clocks frequencies
+    172            * @retval None
+    173            */
+    174          void LL_RCC_GetSystemClocksFreq(LL_RCC_ClocksTypeDef *RCC_Clocks)
+    175          {
+    176            /* Get SYSCLK frequency */
+    177            RCC_Clocks->SYSCLK_Frequency = RCC_GetSystemClockFreq();
+    178          
+    179            /* HCLK clock frequency */
+    180            RCC_Clocks->HCLK_Frequency   = RCC_GetHCLKClockFreq(RCC_Clocks->SYSCLK_Frequency);
+    181          
+    182            /* PCLK1 clock frequency */
+    183            RCC_Clocks->PCLK1_Frequency  = RCC_GetPCLK1ClockFreq(RCC_Clocks->HCLK_Frequency);
+    184          
+    185            /* PCLK2 clock frequency */
+    186            RCC_Clocks->PCLK2_Frequency  = RCC_GetPCLK2ClockFreq(RCC_Clocks->HCLK_Frequency);
+    187          }
+    188          
+    189          /**
+    190            * @brief  Return I2Sx clock frequency
+    191            * @param  I2SxSource This parameter can be one of the following values:
+    192            *         @arg @ref LL_RCC_I2S1_CLKSOURCE
+    193            * @retval I2S clock frequency (in Hz)
+    194            *         - @ref  LL_RCC_PERIPH_FREQUENCY_NO indicates that oscillator is not ready
+    195            */
+    196          uint32_t LL_RCC_GetI2SClockFreq(uint32_t I2SxSource)
+    197          {
+    198            uint32_t i2s_frequency = LL_RCC_PERIPH_FREQUENCY_NO;
+    199          
+    200            /* Check parameter */
+    201            assert_param(IS_LL_RCC_I2S_CLKSOURCE(I2SxSource));
+    202          
+    203            if (I2SxSource == LL_RCC_I2S1_CLKSOURCE)
+    204            {
+    205              /* I2S1 CLK clock frequency */
+    206              switch (LL_RCC_GetI2SClockSource(I2SxSource))
+    207              {
+    208                case LL_RCC_I2S1_CLKSOURCE_PLLI2S:       /* I2S1 Clock is PLLI2S */
+    209                  if (LL_RCC_PLLI2S_IsReady())
+    210                  {
+    211                    i2s_frequency = RCC_PLLI2S_GetFreqDomain_I2S();
+    212                  }
+    213                  break;
+    214          
+    215                case LL_RCC_I2S1_CLKSOURCE_PIN:          /* I2S1 Clock is External clock */
+    216                default:
+    217                  i2s_frequency = EXTERNAL_CLOCK_VALUE;
+    218                  break;
+    219              }
+    220            }
+    221          
+    222            return i2s_frequency;
+    223          }
+    224          
+    225          /**
+    226            * @}
+    227            */
+    228          
+    229          /**
+    230            * @}
+    231            */
+    232          
+    233          /** @addtogroup RCC_LL_Private_Functions
+    234            * @{
+    235            */
+    236          
+    237          /**
+    238            * @brief  Return SYSTEM clock frequency
+    239            * @retval SYSTEM clock frequency (in Hz)
+    240            */
+    241          uint32_t RCC_GetSystemClockFreq(void)
+    242          {
+    243            uint32_t frequency = 0U;
+    244          
+    245            /* Get SYSCLK source -------------------------------------------------------*/
+    246            switch (LL_RCC_GetSysClkSource())
+    247            {
+    248              case LL_RCC_SYS_CLKSOURCE_STATUS_HSI:  /* HSI used as system clock  source */
+    249                frequency = HSI_VALUE;
+    250                break;
+    251          
+    252              case LL_RCC_SYS_CLKSOURCE_STATUS_HSE:  /* HSE used as system clock  source */
+    253                frequency = HSE_VALUE;
+    254                break;
+    255          
+    256              case LL_RCC_SYS_CLKSOURCE_STATUS_PLL:  /* PLL used as system clock  source */
+    257                frequency = RCC_PLL_GetFreqDomain_SYS();
+    258                break;
+    259          
+    260              default:
+    261                frequency = HSI_VALUE;
+    262                break;
+    263            }
+    264          
+    265            return frequency;
+    266          }
+    267          
+    268          /**
+    269            * @brief  Return HCLK clock frequency
+    270            * @param  SYSCLK_Frequency SYSCLK clock frequency
+    271            * @retval HCLK clock frequency (in Hz)
+    272            */
+    273          uint32_t RCC_GetHCLKClockFreq(uint32_t SYSCLK_Frequency)
+    274          {
+    275            /* HCLK clock frequency */
+    276            return __LL_RCC_CALC_HCLK_FREQ(SYSCLK_Frequency, LL_RCC_GetAHBPrescaler());
+    277          }
+    278          
+    279          /**
+    280            * @brief  Return PCLK1 clock frequency
+    281            * @param  HCLK_Frequency HCLK clock frequency
+    282            * @retval PCLK1 clock frequency (in Hz)
+    283            */
+    284          uint32_t RCC_GetPCLK1ClockFreq(uint32_t HCLK_Frequency)
+    285          {
+    286            /* PCLK1 clock frequency */
+    287            return __LL_RCC_CALC_PCLK1_FREQ(HCLK_Frequency, LL_RCC_GetAPB1Prescaler());
+    288          }
+    289          
+    290          /**
+    291            * @brief  Return PCLK2 clock frequency
+    292            * @param  HCLK_Frequency HCLK clock frequency
+    293            * @retval PCLK2 clock frequency (in Hz)
+    294            */
+    295          uint32_t RCC_GetPCLK2ClockFreq(uint32_t HCLK_Frequency)
+    296          {
+    297            /* PCLK2 clock frequency */
+    298            return __LL_RCC_CALC_PCLK2_FREQ(HCLK_Frequency, LL_RCC_GetAPB2Prescaler());
+    299          }
+    300          
+    301          /**
+    302            * @brief  Return PLL clock frequency used for system domain
+    303            * @retval PLL clock frequency (in Hz)
+    304            */
+    305          uint32_t RCC_PLL_GetFreqDomain_SYS(void)
+    306          {
+    307            uint32_t pllinputfreq = 0U, pllsource = 0U;
+    308          
+    309            /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLLM) * PLLN
+    310            */
+    311            pllsource = LL_RCC_PLL_GetMainSource();
+    312          
+    313            switch (pllsource)
+    314            {
+    315              case LL_RCC_PLLSOURCE_HSI:  /* HSI used as PLL clock source */
+    316                pllinputfreq = HSI_VALUE;
+    317                break;
+    318          
+    319              case LL_RCC_PLLSOURCE_HSE:  /* HSE used as PLL clock source */
+    320                pllinputfreq = HSE_VALUE;
+    321                break;
+    322          
+    323              default:
+    324                pllinputfreq = HSI_VALUE;
+    325                break;
+    326            }
+    327            return __LL_RCC_CALC_PLLCLK_FREQ(pllinputfreq, LL_RCC_PLL_GetDivider(),
+    328                                                  LL_RCC_PLL_GetN(), LL_RCC_PLL_GetP());
+    329          }
+    330          
+    331          /**
+    332            * @brief  Return PLL clock frequency used for 48 MHz domain
+    333            * @retval PLL clock frequency (in Hz)
+    334            */
+    335          uint32_t RCC_PLL_GetFreqDomain_48M(void)
+    336          {
+    337            uint32_t pllinputfreq = 0U, pllsource = 0U;
+    338          
+    339            /* PLL_VCO = (HSE_VALUE or HSI_VALUE / PLLM ) * PLLN
+    340               48M Domain clock = PLL_VCO / PLLQ
+    341            */
+    342            pllsource = LL_RCC_PLL_GetMainSource();
+    343          
+    344            switch (pllsource)
+    345            {
+    346              case LL_RCC_PLLSOURCE_HSI:  /* HSI used as PLL clock source */
+    347                pllinputfreq = HSI_VALUE;
+    348                break;
+    349          
+    350              case LL_RCC_PLLSOURCE_HSE:  /* HSE used as PLL clock source */
+    351                pllinputfreq = HSE_VALUE;
+    352                break;
+    353          
+    354              default:
+    355                pllinputfreq = HSI_VALUE;
+    356                break;
+    357            }
+    358            return __LL_RCC_CALC_PLLCLK_48M_FREQ(pllinputfreq, LL_RCC_PLL_GetDivider(),
+    359                                                  LL_RCC_PLL_GetN(), LL_RCC_PLL_GetQ());
+    360          }
+    361          
+    362          /**
+    363            * @brief  Return PLLI2S clock frequency used for I2S domain
+    364            * @retval PLLI2S clock frequency (in Hz)
+    365            */
+    366          uint32_t RCC_PLLI2S_GetFreqDomain_I2S(void)
+    367          {
+    368            uint32_t pllinputfreq = 0U, pllsource = 0U;
+    369          
+    370            /* PLLI2S_VCO = (HSE_VALUE or HSI_VALUE / PLLM) * PLLI2SN
+    371               I2S Domain clock  = PLLI2S_VCO / PLLI2SR
+    372            */
+    373            pllsource = LL_RCC_PLL_GetMainSource();
+    374          
+    375            switch (pllsource)
+    376            {
+    377              case LL_RCC_PLLSOURCE_HSE:  /* HSE used as PLLI2S clock source */
+    378                pllinputfreq = HSE_VALUE;
+    379                break;
+    380          
+    381              case LL_RCC_PLLSOURCE_HSI:  /* HSI used as PLLI2S clock source */
+    382              default:
+    383                pllinputfreq = HSI_VALUE;
+    384                break;
+    385            }
+    386            return __LL_RCC_CALC_PLLI2S_I2S_FREQ(pllinputfreq, LL_RCC_PLL_GetDivider(),
+    387                                                  LL_RCC_PLLI2S_GetN(), LL_RCC_PLLI2S_GetR());
+    388          }
+    389          
+    390          /**
+    391            * @}
+    392            */
+    393          
+    394          /**
+    395            * @}
+    396            */
+    397          
+    398          #endif /* defined(RCC) */
+    399          
+    400          /**
+    401            * @}
+    402            */
+    403          
+    404          #endif /* USE_FULL_LL_DRIVER */
+    405          
+    406          /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_RCC_ClearResetFlags
+       8   LL_RCC_DeInit
+         8   -> LL_RCC_ClearResetFlags
+         8   -> LL_RCC_HSI_Enable
+         8   -> LL_RCC_HSI_IsReady
+         8   -> LL_RCC_HSI_SetCalibTrimming
+         8   -> LL_RCC_PLLI2S_IsReady
+         8   -> LL_RCC_PLL_IsReady
+       0   LL_RCC_GetAHBPrescaler
+       0   LL_RCC_GetAPB1Prescaler
+       0   LL_RCC_GetAPB2Prescaler
+       8   LL_RCC_GetI2SClockFreq
+         8   -> LL_RCC_GetI2SClockSource
+         8   -> LL_RCC_PLLI2S_IsReady
+         8   -> RCC_PLLI2S_GetFreqDomain_I2S
+       0   LL_RCC_GetI2SClockSource
+       0   LL_RCC_GetSysClkSource
+       8   LL_RCC_GetSystemClocksFreq
+         8   -> RCC_GetHCLKClockFreq
+         8   -> RCC_GetPCLK1ClockFreq
+         8   -> RCC_GetPCLK2ClockFreq
+         8   -> RCC_GetSystemClockFreq
+       0   LL_RCC_HSI_Enable
+       0   LL_RCC_HSI_IsReady
+       0   LL_RCC_HSI_SetCalibTrimming
+       0   LL_RCC_PLLI2S_GetN
+       0   LL_RCC_PLLI2S_GetR
+       0   LL_RCC_PLLI2S_IsReady
+       0   LL_RCC_PLL_GetDivider
+       0   LL_RCC_PLL_GetMainSource
+       0   LL_RCC_PLL_GetN
+       0   LL_RCC_PLL_GetP
+       0   LL_RCC_PLL_GetQ
+       0   LL_RCC_PLL_IsReady
+       8   RCC_GetHCLKClockFreq
+         8   -> LL_RCC_GetAHBPrescaler
+       8   RCC_GetPCLK1ClockFreq
+         8   -> LL_RCC_GetAPB1Prescaler
+       8   RCC_GetPCLK2ClockFreq
+         8   -> LL_RCC_GetAPB2Prescaler
+       8   RCC_GetSystemClockFreq
+         8   -> LL_RCC_GetSysClkSource
+         8   -> RCC_PLL_GetFreqDomain_SYS
+      16   RCC_PLLI2S_GetFreqDomain_I2S
+        16   -> LL_RCC_PLLI2S_GetN
+        16   -> LL_RCC_PLLI2S_GetR
+        16   -> LL_RCC_PLL_GetDivider
+        16   -> LL_RCC_PLL_GetMainSource
+      16   RCC_PLL_GetFreqDomain_48M
+        16   -> LL_RCC_PLL_GetDivider
+        16   -> LL_RCC_PLL_GetMainSource
+        16   -> LL_RCC_PLL_GetN
+        16   -> LL_RCC_PLL_GetQ
+      16   RCC_PLL_GetFreqDomain_SYS
+        16   -> LL_RCC_PLL_GetDivider
+        16   -> LL_RCC_PLL_GetMainSource
+        16   -> LL_RCC_PLL_GetN
+        16   -> LL_RCC_PLL_GetP
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable26
+       4  ??DataTable26_1
+       4  ??DataTable26_10
+       4  ??DataTable26_11
+       4  ??DataTable26_12
+       4  ??DataTable26_13
+       4  ??DataTable26_2
+       4  ??DataTable26_3
+       4  ??DataTable26_4
+       4  ??DataTable26_5
+       4  ??DataTable26_6
+       4  ??DataTable26_7
+       4  ??DataTable26_8
+       4  ??DataTable26_9
+      12  LL_RCC_ClearResetFlags
+      86  LL_RCC_DeInit
+      10  LL_RCC_GetAHBPrescaler
+      10  LL_RCC_GetAPB1Prescaler
+      10  LL_RCC_GetAPB2Prescaler
+      40  LL_RCC_GetI2SClockFreq
+       8  LL_RCC_GetI2SClockSource
+      10  LL_RCC_GetSysClkSource
+      36  LL_RCC_GetSystemClocksFreq
+      12  LL_RCC_HSI_Enable
+      12  LL_RCC_HSI_IsReady
+      16  LL_RCC_HSI_SetCalibTrimming
+      10  LL_RCC_PLLI2S_GetN
+      10  LL_RCC_PLLI2S_GetR
+      12  LL_RCC_PLLI2S_IsReady
+      10  LL_RCC_PLL_GetDivider
+      10  LL_RCC_PLL_GetMainSource
+      10  LL_RCC_PLL_GetN
+      10  LL_RCC_PLL_GetP
+      10  LL_RCC_PLL_GetQ
+      12  LL_RCC_PLL_IsReady
+      22  RCC_GetHCLKClockFreq
+      20  RCC_GetPCLK1ClockFreq
+      20  RCC_GetPCLK2ClockFreq
+      40  RCC_GetSystemClockFreq
+      54  RCC_PLLI2S_GetFreqDomain_I2S
+      64  RCC_PLL_GetFreqDomain_48M
+      68  RCC_PLL_GetFreqDomain_SYS
+
+ 
+ 700 bytes in section .text
+ 
+ 700 bytes of CODE memory
+
+Errors: none
+Warnings: none

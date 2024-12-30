@@ -1,0 +1,1673 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\xcp.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\xcp.o.rsp
+#        (R:\STM32F205RC-Booter\Source\xcp.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\xcp.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\xcp.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Source_15812263154798067462.dir\xcp.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\xcp.c
+      1          /************************************************************************************//**
+      2          * \file         Source/xcp.c
+      3          * \brief        XCP 1.0 protocol core source file.
+      4          * \ingroup      Core
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2011  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          
+     34          
+     35          #if (BOOT_COM_ENABLE > 0)
+     36          /****************************************************************************************
+     37          * Type definitions
+     38          ****************************************************************************************/
+     39          /** \brief Structure type for grouping XCP internal module information. */
+     40          typedef struct
+     41          {
+     42            blt_int8u  ctoData[BOOT_COM_RX_MAX_DATA];         /**< cto packet data buffer        */
+     43            blt_int8u  connected;                             /**< connection established        */
+     44            blt_int8u  protection;                            /**< protection state              */
+     45            blt_int8u  s_n_k_resource;                        /**< for seed/key sequence         */
+     46            blt_int8u  ctoPending;                            /**< cto transmission pending flag */
+     47            blt_int16s ctoLen;                                /**< cto current packet length     */
+     48            blt_int32u mta;                                   /**< memory transfer address       */
+     49          } tXcpInfo;
+     50          
+     51          
+     52          /****************************************************************************************
+     53          * Function prototypes
+     54          ****************************************************************************************/
+     55          /* transport layer specific functions */
+     56          static void      XcpTransmitPacket(blt_int8u *data, blt_int16s len);
+     57          
+     58          /* application specific functions */
+     59          static blt_int8u XcpComputeChecksum(blt_int32u address, blt_int32u length,
+     60                                              blt_int32u *checksum);
+     61          
+     62          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+     63          static blt_int8u XcpGetSeed(blt_int8u resource, blt_int8u *seed);
+     64          static blt_int8u XcpVerifyKey(blt_int8u resource, blt_int8u *key, blt_int8u len);
+     65          #endif
+     66          
+     67          /* general utility functions */
+     68          static void       XcpProtectResources(void);
+     69          static void       XcpSetCtoError(blt_int8u error);
+     70          static blt_int32u XcpGetOrderedLong(blt_int8u const * data);
+     71          static void       XcpSetOrderedLong(blt_int32u value, blt_int8u *data);
+     72          
+     73          /* XCP command processors */
+     74          static void XcpCmdConnect(blt_int8u *data);
+     75          static void XcpCmdDisconnect(blt_int8u *data);
+     76          static void XcpCmdGetStatus(blt_int8u *data);
+     77          static void XcpCmdSynch(blt_int8u *data);
+     78          static void XcpCmdGetId(blt_int8u *data);
+     79          static void XcpCmdSetMta(blt_int8u *data);
+     80          static void XcpCmdUpload(blt_int8u *data);
+     81          static void XcpCmdShortUpload(blt_int8u *data);
+     82          static void XcpCmdBuildCheckSum(blt_int8u *data);
+     83          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+     84          static void XcpCmdGetSeed(blt_int8u *data);
+     85          static void XcpCmdUnlock(blt_int8u *data);
+     86          #endif
+     87          #if (XCP_RES_CALIBRATION_EN == 1)
+     88          static void XcpCmdDownload(blt_int8u *data);
+     89          static void XcpCmdDownloadMax(blt_int8u *data);
+     90          #endif
+     91          #if (XCP_RES_PAGING_EN == 1)
+     92          static void XcpCmdSetCalPage(blt_int8u *data);
+     93          static void XcpCmdGetCalPage(blt_int8u *data);
+     94          #endif
+     95          #if (XCP_RES_PROGRAMMING_EN == 1)
+     96          static void XcpCmdProgramMax(blt_int8u *data);
+     97          static void XcpCmdProgram(blt_int8u *data);
+     98          static void XcpCmdProgramStart(blt_int8u *data);
+     99          static void XcpCmdProgramClear(blt_int8u *data);
+    100          static void XcpCmdProgramReset(blt_int8u *data);
+    101          static void XcpCmdProgramPrepare(blt_int8u *data);
+    102          #endif
+    103          
+    104          
+    105          /****************************************************************************************
+    106          * Hook functions
+    107          ****************************************************************************************/
+    108          #if (XCP_PACKET_RECEIVED_HOOK_EN == 1)
+    109          extern blt_bool XcpPacketReceivedHook(blt_int8u *data, blt_int8u len);
+    110          #endif
+    111          
+    112          #if (XCP_RES_PAGING_EN == 1)
+    113          extern blt_int8u XcpCalSetPageHook(blt_int8u segment, blt_int8u page);
+    114          extern blt_int8u XcpCalGetPageHook(blt_int8u segment);
+    115          #endif
+    116          
+    117          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    118          extern blt_int8u XcpGetSeedHook(blt_int8u resource, blt_int8u *seed);
+    119          extern blt_int8u XcpVerifyKeyHook(blt_int8u resource, blt_int8u *key, blt_int8u len);
+    120          #endif
+    121          
+    122          
+    123          /****************************************************************************************
+    124          * External functions
+    125          ****************************************************************************************/
+    126          #if (BOOT_COM_ENABLE == 0)
+    127          /* in case no internally supported communication interface is used, a custom
+    128           * communication module can be added. In order to use the XCP protocol in the custom
+    129           * communication module, this hook function needs to be implemented. If the XCP protocol
+    130           * is not needed, then simply remove the xcp.c source from the project.
+    131           */
+    132          extern void XcpTransmitPacketHook(blt_int8u *data, blt_int16u len);
+    133          #endif
+    134          
+    135          
+    136          /****************************************************************************************
+    137          * Local constants
+    138          ****************************************************************************************/
+    139          /** \brief String buffer with station id. */
+    140          static const blt_int8s xcpStationId[] = XCP_STATION_ID_STRING;
+    141          
+    142          
+    143          /****************************************************************************************
+    144          * Local data definitions
+    145          ****************************************************************************************/
+    146          /** \brief Local variable for storing XCP internal module info. */
+    147          static tXcpInfo xcpInfo;
+    148          
+    149          
+    150          /************************************************************************************//**
+    151          ** \brief     Initializes the XCP driver. Should be called once upon system startup.
+    152          ** \return    none
+    153          **
+    154          ****************************************************************************************/
+    155          void XcpInit(void)
+    156          {
+    157            /* reset xcp module info */
+    158            xcpInfo.connected = 0;
+    159            xcpInfo.mta = 0;
+    160            xcpInfo.ctoPending = 0;
+    161            xcpInfo.ctoLen = 0;
+    162            xcpInfo.s_n_k_resource = 0;
+    163            xcpInfo.protection = 0;
+    164          } /*** end of XcpInit ***/
+    165          
+    166          
+    167          /************************************************************************************//**
+    168          ** \brief     Obtains information about the XCP connection state.
+    169          ** \return    BLT_TRUE is an XCP connection is established, BLT_FALSE otherwise.
+    170          **
+    171          ****************************************************************************************/
+    172          blt_bool XcpIsConnected(void)
+    173          {
+    174            if (xcpInfo.connected == 0)
+    175            {
+    176              return BLT_FALSE;
+    177            }
+    178            return BLT_TRUE;
+    179          } /*** end of XcpIsConnected ***/
+    180          
+    181          
+    182          /************************************************************************************//**
+    183          ** \brief     Informs the core that a pending packet transmission was completed by
+    184          **            the transport layer.
+    185          ** \return    none
+    186          **
+    187          ****************************************************************************************/
+    188          void XcpPacketTransmitted(void)
+    189          {
+    190            /* reset packet transmission pending flag */
+    191            xcpInfo.ctoPending = 0;
+    192          } /*** end of XcpPacketTransmitted ***/
+    193          
+    194          
+    195          /************************************************************************************//**
+    196          ** \brief     Informs the core that a new packet was received by the transport layer.
+    197          ** \param     data Pointer to byte buffer with packet data.
+    198          ** \param     len Number of bytes in the packet.
+    199          ** \return    none
+    200          **
+    201          ****************************************************************************************/
+    202          void XcpPacketReceived(blt_int8u *data, blt_int8u len)
+    203          {
+    204          
+    205          #if (XCP_PACKET_RECEIVED_HOOK_EN == 0)
+    206            /* suppress compiler warning due to unused parameter. */
+    207            (void)len;
+    208          #else
+    209            /* give the hook function a chance to process this packet. A return value of BLT_TRUE
+    210             * indicates that the hook function processed the packet and that no further processing
+    211             * is required.
+    212             */
+    213            if (XcpPacketReceivedHook(data, len) == BLT_TRUE)
+    214            {
+    215              /* packet processed by hook function so no need to continue. */
+    216              return;
+    217            }
+    218          #endif
+    219            /* was this a connect command? */
+    220            if (data[0] == XCP_CMD_CONNECT)
+    221            {
+    222              /* process the connect command */
+    223              XcpCmdConnect(data);
+    224            }
+    225            /* only continue if connected */
+    226            else if (xcpInfo.connected == 1)
+    227            {
+    228              switch (data[0])
+    229              {
+    230                case XCP_CMD_UPLOAD:
+    231                  XcpCmdUpload(data);
+    232                  break;
+    233                case XCP_CMD_SHORT_UPLOAD:
+    234                  XcpCmdShortUpload(data);
+    235                  break;
+    236                case XCP_CMD_SET_MTA:
+    237                  XcpCmdSetMta(data);
+    238                  break;
+    239                case XCP_CMD_BUILD_CHECKSUM:
+    240                  XcpCmdBuildCheckSum(data);
+    241                  break;
+    242                case XCP_CMD_GET_ID:
+    243                  XcpCmdGetId(data);
+    244                  break;
+    245                case XCP_CMD_SYNCH:
+    246                  XcpCmdSynch(data);
+    247                  break;
+    248                case XCP_CMD_GET_STATUS:
+    249                  XcpCmdGetStatus(data);
+    250                  break;
+    251                case XCP_CMD_DISCONNECT:
+    252                  XcpCmdDisconnect(data);
+    253                  break;
+    254          #if (XCP_RES_CALIBRATION_EN == 1)
+    255                case XCP_CMD_DOWNLOAD:
+    256                  XcpCmdDownload(data);
+    257                  break;
+    258                case XCP_CMD_DOWLOAD_MAX:
+    259                  XcpCmdDownloadMax(data);
+    260                  break;
+    261          #endif
+    262          #if (XCP_RES_PROGRAMMING_EN == 1)
+    263                case XCP_CMD_PROGRAM_MAX:
+    264                  XcpCmdProgramMax(data);
+    265                  break;
+    266                case XCP_CMD_PROGRAM:
+    267                  XcpCmdProgram(data);
+    268                  break;
+    269                case XCP_CMD_PROGRAM_START:
+    270                  XcpCmdProgramStart(data);
+    271                  break;
+    272                case XCP_CMD_PROGRAM_CLEAR:
+    273                  XcpCmdProgramClear(data);
+    274                  break;
+    275                case XCP_CMD_PROGRAM_RESET:
+    276                  XcpCmdProgramReset(data);
+    277                  break;
+    278                case XCP_CMD_PROGRAM_PREPARE:
+    279                  XcpCmdProgramPrepare(data);
+    280                  break;
+    281          #endif
+    282          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    283                case XCP_CMD_GET_SEED:
+    284                  XcpCmdGetSeed(data);
+    285                  break;
+    286                case XCP_CMD_UNLOCK:
+    287                  XcpCmdUnlock(data);
+    288                  break;
+    289          #endif
+    290          #if (XCP_RES_PAGING_EN == 1)
+    291                case XCP_CMD_SET_CAL_PAGE:
+    292                  XcpCmdSetCalPage(data);
+    293                  break;
+    294                case XCP_CMD_GET_CAL_PAGE:
+    295                  XcpCmdGetCalPage(data);
+    296                  break;
+    297          #endif
+    298                default:
+    299                  XcpSetCtoError(XCP_ERR_CMD_UNKNOWN);
+    300                  break;
+    301              }
+    302            }
+    303            else
+    304            {
+    305              /* return to make sure response packet is not send because we are not connected */
+    306              return;
+    307            }
+    308          
+    309            /* make sure the previous command was completed */
+    310            if (xcpInfo.ctoPending == 1)
+    311            {
+    312              /* command overrun occurred */
+    313              XcpSetCtoError(XCP_ERR_CMD_BUSY);
+    314            }
+    315          
+    316            /* send the response if it contains something */
+    317            if (xcpInfo.ctoLen > 0)
+    318            {
+    319              /* set cto packet transmission pending flag */
+    320              xcpInfo.ctoPending = 1;
+    321          
+    322              /* transmit the cto response packet */
+    323              XcpTransmitPacket(xcpInfo.ctoData, xcpInfo.ctoLen);
+    324            }
+    325          } /*** end of XcpPacketReceived ***/
+    326          
+    327          
+    328          /************************************************************************************//**
+    329          ** \brief     Transmits the packet using the xcp transport layer.
+    330          ** \param     data Pointer to the byte buffer with packet data.
+    331          ** \param     len  Number of data bytes that need to be transmitted.
+    332          ** \return    none
+    333          **
+    334          ****************************************************************************************/
+    335          static void XcpTransmitPacket(blt_int8u *data, blt_int16s len)
+    336          {
+    337            /* submit packet to the communication interface for transmission */
+    338          #if (BOOT_COM_ENABLE == 0)
+    339            XcpTransmitPacketHook(data, len);
+    340          #else
+    341            ComTransmitPacket(data, len);
+    342          #endif
+    343          
+    344          } /*** end of XcpTransmitPacket ***/
+    345          
+    346          
+    347          /************************************************************************************//**
+    348          ** \brief     Called by the BUILD_CHECKSUM command to perform a checksum calculation
+    349          **            over the specified memory region.
+    350          ** \param     address   The start address of the memory region.
+    351          ** \param     length    Length of the memory region in bytes.
+    352          ** \param     checksum  Pointer to where the calculated checksum is to be stored.
+    353          ** \return    Checksum type that was used during the checksum calculation.
+    354          **
+    355          ****************************************************************************************/
+    356          static blt_int8u XcpComputeChecksum(blt_int32u address, blt_int32u length,
+    357                                              blt_int32u *checksum)
+    358          {
+    359            blt_int8u cs = 0;
+    360          
+    361            /* this example computes the checksum using the add byte to byte algorithm */
+    362            while (length-- > 0)
+    363            {
+    364              /* add the next byte value */
+    365              cs += *((blt_int8u *)(blt_addr)address);
+    366              /* increment address */
+    367              address++;
+    368              /* service the watchdog */
+    369              CopService();
+    370            }
+    371            /* store the computed checksum value */
+    372            *checksum = cs;
+    373            /* inform the caller of the uses checksum computation algorithm */
+    374            return XCP_CS_ADD11;
+    375          } /*** end of XcpComputeChecksum ***/
+    376          
+    377          
+    378          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    379          /************************************************************************************//**
+    380          ** \brief     Provides a seed to the XCP master that will be used for the key
+    381          **            generation when the master attempts to unlock the specified resource.
+    382          **            Called by the GET_SEED command.
+    383          ** \param     resource  Resource that the seed if requested for (XCP_RES_XXX).
+    384          ** \param     seed      Pointer to byte buffer wher the seed will be stored.
+    385          ** \return    Length of the seed in bytes.
+    386          **
+    387          ****************************************************************************************/
+    388          static blt_int8u XcpGetSeed(blt_int8u resource, blt_int8u *seed)
+    389          {
+    390            /* pass request on to the application through a hook function */
+    391            return XcpGetSeedHook(resource, seed);
+    392          } /*** end of XcpGetSeed ***/
+    393          
+    394          
+    395          /************************************************************************************//**
+    396          ** \brief     Called by the UNLOCK command and checks if the key to unlock the
+    397          **            specified resource was correct. If so, then the resource protection
+    398          **            will be removed.
+    399          ** \param     resource  resource to unlock (XCP_RES_XXX).
+    400          ** \param     key       pointer to the byte buffer holding the key.
+    401          ** \param     len       length of the key in bytes.
+    402          ** \return    1 if the key was correct, 0 otherwise.
+    403          **
+    404          ****************************************************************************************/
+    405          static blt_int8u XcpVerifyKey(blt_int8u resource, blt_int8u *key, blt_int8u len)
+    406          {
+    407            /* pass request on to the application through a hook function */
+    408            return XcpVerifyKeyHook(resource, key, len);
+    409          } /*** end of XcpVerifyKey ***/
+    410          #endif /* XCP_SEED_KEY_PROTECTION_EN == 1 */
+    411          
+    412          
+    413          /************************************************************************************//**
+    414          ** \brief     Utility function to protects all the available resources.
+    415          ** \return    none
+    416          **
+    417          ****************************************************************************************/
+    418          static void XcpProtectResources(void)
+    419          {
+    420            xcpInfo.protection = 0;
+    421          
+    422          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    423          #if (XCP_RES_CALIBRATION_EN == 1)
+    424            xcpInfo.protection |= XCP_RES_CALPAG;
+    425          #endif
+    426          
+    427          #if (XCP_RES_PAGING_EN == 1)
+    428            xcpInfo.protection |= XCP_RES_CALPAG;
+    429          #endif
+    430          
+    431          #if (XCP_RES_PROGRAMMING_EN == 1)
+    432            xcpInfo.protection |= XCP_RES_PGM;
+    433          #endif
+    434          
+    435          #if (XCP_RES_DATA_ACQUISITION_EN == 1)
+    436            xcpInfo.protection |= XCP_RES_DAQ;
+    437          #endif
+    438          
+    439          #if (XCP_RES_DATA_STIMULATION_EN == 1)
+    440            xcpInfo.protection |= XCP_RES_STIM;
+    441          #endif
+    442          #endif /* XCP_SEED_KEY_PROTECTION_EN == 1 */
+    443          } /*** end of XcpProtectResources ***/
+    444          
+    445          
+    446          /************************************************************************************//**
+    447          ** \brief     Prepares the cto packet data for the specified error.
+    448          ** \param     error XCP error code (XCP_ERR_XXX).
+    449          ** \return    none
+    450          **
+    451          ****************************************************************************************/
+    452          static void XcpSetCtoError(blt_int8u error)
+    453          {
+    454            /* prepare the error packet */
+    455            xcpInfo.ctoData[0] = XCP_PID_ERR;
+    456            xcpInfo.ctoData[1] = error;
+    457            xcpInfo.ctoLen = 2;
+    458          } /*** end of XcpSetCtoError ***/
+    459          
+    460          
+    461          /************************************************************************************//**
+    462          ** \brief     Obtains a 32-bit value from a byte buffer taking into account Intel
+    463          **            or Motorola byte ordering.
+    464          ** \param     data Array to the buffer with the 32-bit value stored as bytes.
+    465          ** \return    The 32-bit value.
+    466          **
+    467          ****************************************************************************************/
+    468          static blt_int32u XcpGetOrderedLong(blt_int8u const * data)
+    469          {
+    470            blt_int32u result = 0;
+    471          
+    472          #if (BOOT_CPU_BYTE_ORDER_MOTOROLA	== 0)
+    473            result |= (blt_int32u)data[0];
+    474            result |= (blt_int32u)((blt_int32u)data[1] << 8);
+    475            result |= (blt_int32u)((blt_int32u)data[2] << 16);
+    476            result |= (blt_int32u)((blt_int32u)data[3] << 24);
+    477          #else	
+    478            result |= (blt_int32u)data[3];
+    479            result |= (blt_int32u)((blt_int32u)data[2] << 8);
+    480            result |= (blt_int32u)((blt_int32u)data[1] << 16);
+    481            result |= (blt_int32u)((blt_int32u)data[0] << 24);
+    482          #endif
+    483            /* Give the result back to the caller. */
+    484            return result;
+    485          } /*** end of XcpGetOrderedLong ***/
+    486          
+    487          
+    488          /************************************************************************************//**
+    489          ** \brief     Stores a 32-bit value into a byte buffer taking into account Intel
+    490          **            or Motorola byte ordering.
+    491          ** \param     value The 32-bit value to store in the buffer.
+    492          ** \param     data Array to the buffer for storage.
+    493          **
+    494          ****************************************************************************************/
+    495          static void XcpSetOrderedLong(blt_int32u value, blt_int8u *data)
+    496          {
+    497          #if (BOOT_CPU_BYTE_ORDER_MOTOROLA	== 0)
+    498            data[0] = (blt_int8u) value;
+    499            data[1] = (blt_int8u)(value >>  8);
+    500            data[2] = (blt_int8u)(value >> 16);
+    501            data[3] = (blt_int8u)(value >> 24);
+    502          #else
+    503            data[3] = (blt_int8u) value;
+    504            data[2] = (blt_int8u)(value >>  8);
+    505            data[1] = (blt_int8u)(value >> 16);
+    506            data[0] = (blt_int8u)(value >> 24);
+    507          #endif
+    508          } /*** end of XcpSetOrderedLong ***/
+    509          
+    510          
+    511          /************************************************************************************//**
+    512          ** \brief     XCP command processor function which handles the CONNECT command as
+    513          **            defined by the protocol.
+    514          ** \param     data Pointer to a byte buffer with the packet data.
+    515          ** \return    none
+    516          **
+    517          ****************************************************************************************/
+    518          static void XcpCmdConnect(blt_int8u *data)
+    519          {
+    520            /* suppress compiler warning for unused parameter */
+    521            data = data;
+    522          
+    523          #if (BOOT_FILE_SYS_ENABLE > 0)
+    524            /* reject the connection if the file module is not idle. this means that a firmware
+    525             * update from the locally attached storage is in progress
+    526             */
+    527            if (FileIsIdle() == BLT_FALSE)
+    528            {
+    529              /* command not processed because we are busy */
+    530              XcpSetCtoError(XCP_ERR_CMD_BUSY);
+    531              return;
+    532            }
+    533          #endif
+    534          
+    535            /* enable resource protection */
+    536            XcpProtectResources();
+    537          
+    538            /* indicate that the connection is established */
+    539            xcpInfo.connected = 1;
+    540          
+    541            /* set packet id to command response packet */
+    542            xcpInfo.ctoData[0] = XCP_PID_RES;
+    543          
+    544            /* report available resources */
+    545            xcpInfo.ctoData[1] = 0;
+    546          #if (XCP_RES_CALIBRATION_EN == 1)
+    547            xcpInfo.ctoData[1] |= XCP_RES_CALPAG;
+    548          #endif
+    549          
+    550          #if (XCP_RES_PAGING_EN == 1)
+    551            xcpInfo.ctoData[1] |= XCP_RES_CALPAG;
+    552          #endif
+    553          
+    554          #if (XCP_RES_PROGRAMMING_EN == 1)
+    555            xcpInfo.ctoData[1] |= XCP_RES_PGM;
+    556          #endif
+    557          
+    558          #if (XCP_RES_DATA_ACQUISITION_EN == 1)
+    559            xcpInfo.ctoData[1] |= XCP_RES_DAQ;
+    560          #endif
+    561          
+    562          #if (XCP_RES_DATA_STIMULATION_EN == 1)
+    563            xcpInfo.ctoData[1] |= XCP_RES_STIM;
+    564          #endif
+    565          
+    566            /* report communication mode info. only byte granularity is supported */
+    567            xcpInfo.ctoData[2] = 0;
+    568            /* configure for motorola or intel byte ordering */
+    569            xcpInfo.ctoData[2] |= XCP_MOTOROLA_FORMAT;
+    570          
+    571            /* report max cto data length */
+    572            xcpInfo.ctoData[3] = (blt_int8u)XCP_CTO_PACKET_LEN;
+    573          
+    574            /* report max dto data length */
+    575          #if (XCP_MOTOROLA_FORMAT == 0)
+    576            xcpInfo.ctoData[4] = (blt_int8u)XCP_DTO_PACKET_LEN;
+    577            xcpInfo.ctoData[5] = (blt_int8u)(XCP_DTO_PACKET_LEN >> 8);
+    578          #else
+    579            xcpInfo.ctoData[4] = (blt_int8u)(XCP_DTO_PACKET_LEN >> 8);
+    580            xcpInfo.ctoData[5] = (blt_int8u)XCP_DTO_PACKET_LEN;
+    581          #endif
+    582          
+    583            /* report msb of protocol layer version number */
+    584            xcpInfo.ctoData[6] = XCP_VERSION_PROTOCOL_LAYER >> 8;
+    585          
+    586            /* report msb of transport layer version number */
+    587            xcpInfo.ctoData[7] = XCP_VERSION_TRANSPORT_LAYER >> 8;
+    588          
+    589            /* set packet length */
+    590            xcpInfo.ctoLen = 8;
+    591          
+    592            /* reinit the NVM driver because a new firmware update is about the start */
+    593            NvmInit();
+    594          } /*** end of XcpCmdConnect ***/
+    595          
+    596          
+    597          /************************************************************************************//**
+    598          ** \brief     XCP command processor function which handles the DISCONNECT command as
+    599          **            defined by the protocol.
+    600          ** \param     data Pointer to a byte buffer with the packet data.
+    601          ** \return    none
+    602          **
+    603          ****************************************************************************************/
+    604          static void XcpCmdDisconnect(blt_int8u *data)
+    605          {
+    606            /* suppress compiler warning for unused parameter */
+    607            data = data;
+    608          
+    609            /* indicate that the xcp connection is disconnected */
+    610            xcpInfo.connected = 0;
+    611          
+    612            /* enable resource protection */
+    613            XcpProtectResources();
+    614          
+    615            /* set packet id to command response packet */
+    616            xcpInfo.ctoData[0] = XCP_PID_RES;
+    617          
+    618            /* set packet length */
+    619            xcpInfo.ctoLen = 1;
+    620          } /*** end of XcpCmdDisconnect ***/
+    621          
+    622          
+    623          /************************************************************************************//**
+    624          ** \brief     XCP command processor function which handles the GET_STATUS command as
+    625          **            defined by the protocol.
+    626          ** \param     data Pointer to a byte buffer with the packet data.
+    627          ** \return    none
+    628          **
+    629          ****************************************************************************************/
+    630          static void XcpCmdGetStatus(blt_int8u *data)
+    631          {
+    632            /* suppress compiler warning for unused parameter */
+    633            data = data;
+    634          
+    635            /* set packet id to command response packet */
+    636            xcpInfo.ctoData[0] = XCP_PID_RES;
+    637          
+    638            /* report session status */
+    639            xcpInfo.ctoData[1] = 0;
+    640          
+    641            /* report current resource protection status */
+    642            xcpInfo.ctoData[2] = xcpInfo.protection;
+    643          
+    644            /* reset reserved and session configuration id values */
+    645            xcpInfo.ctoData[3] = 0;
+    646            xcpInfo.ctoData[4] = 0;
+    647            xcpInfo.ctoData[5] = 0;
+    648          
+    649            /* set packet length */
+    650            xcpInfo.ctoLen = 6;
+    651          } /*** end of XcpCmdGetStatus ***/
+    652          
+    653          
+    654          /************************************************************************************//**
+    655          ** \brief     XCP command processor function which handles the SYNCH command as
+    656          **            defined by the protocol.
+    657          ** \param     data Pointer to a byte buffer with the packet data.
+    658          ** \return    none
+    659          **
+    660          ****************************************************************************************/
+    661          static void XcpCmdSynch(blt_int8u *data)
+    662          {
+    663            /* suppress compiler warning for unused parameter */
+    664            data = data;
+    665          
+    666            /* synch requires a negative response */
+    667            XcpSetCtoError(XCP_ERR_CMD_SYNCH);
+    668          } /*** end of XcpCmdSynch ***/
+    669          
+    670          
+    671          /************************************************************************************//**
+    672          ** \brief     XCP command processor function which handles the GET_ID command as
+    673          **            defined by the protocol.
+    674          ** \param     data Pointer to a byte buffer with the packet data.
+    675          ** \return    none
+    676          **
+    677          ****************************************************************************************/
+    678          static void XcpCmdGetId(blt_int8u *data)
+    679          {
+    680            blt_int32u stationIdLen;
+    681            
+    682            /* suppress compiler warning for unused parameter */
+    683            data = data;
+    684          
+    685            /* set packet id to command response packet */
+    686            xcpInfo.ctoData[0] = XCP_PID_RES;
+    687          
+    688            /* point mta to start of station id string */
+    689            xcpInfo.mta = (blt_int32u)&xcpStationId[0];
+    690          
+    691            /* set station id mode to 0 */
+    692            xcpInfo.ctoData[1] = 0;
+    693          
+    694            /* reset reserved values */
+    695            xcpInfo.ctoData[2] = 0;
+    696            xcpInfo.ctoData[3] = 0;
+    697          
+    698            /* store station id length (excl. null termination) for response packet */
+    699            stationIdLen = (sizeof(xcpStationId)/sizeof(xcpStationId[0])) - 1;
+    700            XcpSetOrderedLong(stationIdLen, &xcpInfo.ctoData[4]);
+    701          
+    702            /* set packet length */
+    703            xcpInfo.ctoLen = 8;
+    704          } /*** end of XcpCmdGetId ***/
+    705          
+    706          
+    707          /************************************************************************************//**
+    708          ** \brief     XCP command processor function which handles the SET_MTA command as
+    709          **            defined by the protocol.
+    710          ** \param     data Pointer to a byte buffer with the packet data.
+    711          ** \return    none
+    712          **
+    713          ****************************************************************************************/
+    714          static void XcpCmdSetMta(blt_int8u *data)
+    715          {
+    716            /* set packet id to command response packet */
+    717            xcpInfo.ctoData[0] = XCP_PID_RES;
+    718          
+    719            /* update mta. current implementation ignores address extension */
+    720            xcpInfo.mta = XcpGetOrderedLong(&data[4]);
+    721          
+    722            /* set packet length */
+    723            xcpInfo.ctoLen = 1;
+    724          } /*** end of XcpCmdSetMta ***/
+    725          
+    726          
+    727          /************************************************************************************//**
+    728          ** \brief     XCP command processor function which handles the UPLOAD command as
+    729          **            defined by the protocol.
+    730          ** \param     data Pointer to a byte buffer with the packet data.
+    731          ** \return    none
+    732          **
+    733          ****************************************************************************************/
+    734          static void XcpCmdUpload(blt_int8u *data)
+    735          {
+    736            blt_int16u len;
+    737            blt_int8u *destPtr;
+    738          
+    739            /* validate length of upload request */
+    740            if (data[1] > (XCP_CTO_PACKET_LEN-1))
+    741            {
+    742              /* requested data length is too long */
+    743              XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+    744              return;
+    745            }
+    746          
+    747            /* read out the length of the requested upload operation */
+    748            len = data[1];
+    749            /* set the destination pointer */
+    750            destPtr = (blt_int8u *)((blt_addr)(blt_int32u)&xcpInfo.ctoData[1]);
+    751          
+    752          #if (XCP_UPLOAD_EN == 1)
+    753            /* according to the XCP specification memory read/upload functionality is always
+    754             * available. This behavior is unwanted in the case of a bootloader that has the
+    755             * seed/key security feature enabled. The default XCP behavior is deviated in this
+    756             * situation. The deviation is such that all zero values are returned if the seed/key
+    757             * security feature is enabled and the programming resource is not yet unlocked.
+    758             */
+    759            #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    760            /* check if PGM resource is unlocked */
+    761            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+    762            {
+    763              /* resource is locked so memory read access is denied. zero values are returned
+    764               * instead.
+    765               */
+    766              CpuMemSet((blt_addr)destPtr, 0, len);
+    767            }
+    768            else
+    769            {
+    770              /* copy the data from memory to the data packet */
+    771              CpuMemCopy((blt_addr)destPtr,(blt_addr)xcpInfo.mta, len);
+    772            }
+    773            #else
+    774            /* copy the data from memory to the data packet */
+    775            CpuMemCopy((blt_addr)destPtr,(blt_addr)xcpInfo.mta, len);
+    776            #endif /* XCP_SEED_KEY_PROTECTION_EN == 1 */
+    777          #else
+    778            /* uploads are disabled, so return zero values for memory read operations */
+    779            CpuMemSet((blt_addr)destPtr, 0, len);
+    780          #endif /* XCP_UPLOAD_EN == 1 */
+    781          
+    782            /* set packet id to command response packet */
+    783            xcpInfo.ctoData[0] = XCP_PID_RES;
+    784          
+    785            /* post increment the mta */
+    786            xcpInfo.mta += data[1];
+    787          
+    788            /* set packet length */
+    789            xcpInfo.ctoLen = data[1]+1;
+    790          } /*** end of XcpCmdUpload ***/
+    791          
+    792          
+    793          /************************************************************************************//**
+    794          ** \brief     XCP command processor function which handles the SHORT_UPLOAD command as
+    795          **            defined by the protocol.
+    796          ** \param     data Pointer to a byte buffer with the packet data.
+    797          ** \return    none
+    798          **
+    799          ****************************************************************************************/
+    800          static void XcpCmdShortUpload(blt_int8u *data)
+    801          {
+    802            blt_int16u len;
+    803            blt_int8u *destPtr;
+    804          
+    805            /* validate length of upload request */
+    806            if (data[1] > (XCP_CTO_PACKET_LEN-1))
+    807            {
+    808              /* requested data length is too long */
+    809              XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+    810              return;
+    811            }
+    812          
+    813            /* update mta. current implementation ignores address extension */
+    814            xcpInfo.mta = XcpGetOrderedLong(&data[4]);
+    815            /* read out the length of the requested upload operation */
+    816            len = data[1];
+    817            /* set the destination pointer */
+    818            destPtr = (blt_int8u *)((blt_addr)(blt_int32u)&xcpInfo.ctoData[1]);
+    819          
+    820          #if (XCP_UPLOAD_EN == 1)
+    821            /* according to the XCP specification memory read/upload functionality is always
+    822             * available. This behavior is unwanted in the case of a bootloader that has the
+    823             * seed/key security feature enabled. The default XCP behavior is deviated in this
+    824             * situation. The deviation is such that all zero values are returned if the seed/key
+    825             * security feature is enabled and the programming resource is not yet unlocked.
+    826             */
+    827            #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    828            /* check if PGM resource is unlocked */
+    829            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+    830            {
+    831              /* resource is locked so memory read access is denied. zero values are returned
+    832               * instead.
+    833               */
+    834              CpuMemSet((blt_addr)destPtr, 0, len);
+    835            }
+    836            else
+    837            {
+    838              /* copy the data from memory to the data packet */
+    839              CpuMemCopy((blt_addr)destPtr,(blt_addr)xcpInfo.mta, len);
+    840            }
+    841            #else
+    842            /* copy the data from memory to the data packet */
+    843            CpuMemCopy((blt_addr)destPtr,(blt_addr)xcpInfo.mta, len);
+    844            #endif /* XCP_SEED_KEY_PROTECTION_EN == 1 */
+    845          #else
+    846            /* uploads are disabled, so return zero values for memory read operations */
+    847            CpuMemSet((blt_addr)destPtr, 0, len);
+    848          #endif /* XCP_UPLOAD_EN == 1 */
+    849          
+    850            /* set packet id to command response packet */
+    851            xcpInfo.ctoData[0] = XCP_PID_RES;
+    852          
+    853            /* post increment the mta */
+    854            xcpInfo.mta += data[1];
+    855          
+    856            /* set packet length */
+    857            xcpInfo.ctoLen = data[1]+1;
+    858          } /*** end of XcpCmdShortUpload ***/
+    859          
+    860          
+    861          #if (XCP_RES_CALIBRATION_EN == 1)
+    862          /************************************************************************************//**
+    863          ** \brief     XCP command processor function which handles the DOWNLOAD command as
+    864          **            defined by the protocol.
+    865          ** \param     data Pointer to a byte buffer with the packet data.
+    866          ** \return    none
+    867          **
+    868          ****************************************************************************************/
+    869          static void XcpCmdDownload(blt_int8u *data)
+    870          {
+    871          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    872            /* check if CAL_PAG resource is unlocked */
+    873            if ((xcpInfo.protection & XCP_RES_CALPAG) != 0)
+    874            {
+    875              /* resource is locked. use seed/key sequence to unlock */
+    876              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+    877              return;
+    878            }
+    879          #endif
+    880          
+    881            /* validate length of download request */
+    882            if (data[1] > (XCP_CTO_PACKET_LEN-2))
+    883            {
+    884              /* requested data length is too long */
+    885              XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+    886              return;
+    887            }
+    888          
+    889            /* copy the data from the data packet to memory */
+    890            CpuMemCopy((blt_addr)xcpInfo.mta, (blt_addr)((blt_int32u)&data[2]), data[1]);
+    891            /* set packet id to command response packet */
+    892            xcpInfo.ctoData[0] = XCP_PID_RES;
+    893          
+    894            /* post increment the mta */
+    895            xcpInfo.mta += data[1];
+    896          
+    897            /* set packet length */
+    898            xcpInfo.ctoLen = 1;
+    899          } /*** end of XcpCmdDownload ***/
+    900          
+    901          
+    902          /************************************************************************************//**
+    903          ** \brief     XCP command processor function which handles the DOWNLOAD_MAX command as
+    904          **            defined by the protocol.
+    905          ** \param     data Pointer to a byte buffer with the packet data.
+    906          ** \return    none
+    907          **
+    908          ****************************************************************************************/
+    909          static void XcpCmdDownloadMax(blt_int8u *data)
+    910          {
+    911          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    912            /* check if CAL_PAG resource is unlocked */
+    913            if ((xcpInfo.protection & XCP_RES_CALPAG) != 0)
+    914            {
+    915              /* resource is locked. use seed/key sequence to unlock */
+    916              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+    917              return;
+    918            }
+    919          #endif
+    920          
+    921            /* copy the data from the data packet to memory */
+    922            CpuMemCopy((blt_addr)xcpInfo.mta, (blt_addr)((blt_int32u)&data[1]), \
+    923                       XCP_CTO_PACKET_LEN-1);
+    924          
+    925            /* set packet id to command response packet */
+    926            xcpInfo.ctoData[0] = XCP_PID_RES;
+    927          
+    928            /* post increment the mta */
+    929            xcpInfo.mta += XCP_CTO_PACKET_LEN-1;
+    930          
+    931            /* set packet length */
+    932            xcpInfo.ctoLen = 1;
+    933          } /*** end of XcpCmdDownloadMax ***/
+    934          #endif /* XCP_RES_CALIBRATION_EN == 1 */
+    935          
+    936          
+    937          /************************************************************************************//**
+    938          ** \brief     XCP command processor function which handles the BUILD_CHECKSUM command as
+    939          **            defined by the protocol.
+    940          ** \param     data Pointer to a byte buffer with the packet data.
+    941          ** \return    none
+    942          **
+    943          ****************************************************************************************/
+    944          static void XcpCmdBuildCheckSum(blt_int8u *data)
+    945          {
+    946            blt_int32u checksumLen;
+    947            blt_int32u checksumVal = 0;
+    948            blt_int8u  checksumType;
+    949            
+    950            /* set packet id to command response packet */
+    951            xcpInfo.ctoData[0] = XCP_PID_RES;
+    952          
+    953            /* obtain checksum and checksum type */
+    954            checksumLen = XcpGetOrderedLong(&data[4]);
+    955            checksumType = XcpComputeChecksum(xcpInfo.mta, checksumLen, &checksumVal);
+    956            xcpInfo.ctoData[1] = checksumType;
+    957            XcpSetOrderedLong(checksumVal, &xcpInfo.ctoData[4]);
+    958          
+    959            /* initialize reserved parameters */
+    960            xcpInfo.ctoData[2] = 0;
+    961            xcpInfo.ctoData[3] = 0;
+    962          
+    963            /* set packet length */
+    964            xcpInfo.ctoLen = 8;
+    965          } /*** end of XcpCmdBuildCheckSum ***/
+    966          
+    967          
+    968          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+    969          /************************************************************************************//**
+    970          ** \brief     XCP command processor function which handles the GET_SEED command as
+    971          **            defined by the protocol.
+    972          ** \param     data Pointer to a byte buffer with the packet data.
+    973          ** \return    none
+    974          **
+    975          ****************************************************************************************/
+    976          static void XcpCmdGetSeed(blt_int8u *data)
+    977          {
+    978            blt_int8u resourceOK;
+    979            /* made seed buffer static to lower stack load */
+    980            static blt_int8u seedBuffer[XCP_SEED_MAX_LEN];
+    981            static blt_int8u seedRemainderLen = 0;
+    982            static blt_int8u *seedCurrentPtr;
+    983            static blt_bool sequenceInProgress = BLT_FALSE;
+    984            blt_int8u seedCurrentLen;
+    985          
+    986            /* set packet id to command response packet */
+    987            xcpInfo.ctoData[0] = XCP_PID_RES;
+    988          
+    989            /* validate requested resource in case the mode flag equals 0 */
+    990            if (data[1] == 0)
+    991            {
+    992              /* init resource check variable as if an illegal resource is requested */
+    993              resourceOK = 0;
+    994          
+    995              /* check if calibration/paging resource is requested for seed/key and make
+    996               * sure this is the only requested resource
+    997               */
+    998              if (((data[2] & XCP_RES_CALPAG) > 0) && ((data[2] & ~XCP_RES_CALPAG) == 0))
+    999              {
+   1000                resourceOK = 1;
+   1001              }
+   1002          
+   1003              /* check if programming resource is requested for seed/key and make
+   1004               * sure this is the only requested resource
+   1005               */
+   1006              if (((data[2] & XCP_RES_PGM) > 0) && ((data[2] & ~XCP_RES_PGM) == 0))
+   1007              {
+   1008                resourceOK = 1;
+   1009              }
+   1010          
+   1011              /* check if data acquisition resource is requested for seed/key and make
+   1012               * sure this is the only requested resource
+   1013               */
+   1014              if (((data[2] & XCP_RES_DAQ) > 0) && ((data[2] & ~XCP_RES_DAQ) == 0))
+   1015              {
+   1016                resourceOK = 1;
+   1017              }
+   1018          
+   1019              /* check if data stimulation resource is requested for seed/key and make
+   1020               * sure this is the only requested resource
+   1021               */
+   1022              if (((data[2] & XCP_RES_STIM) > 0) && ((data[2] & ~XCP_RES_STIM) == 0))
+   1023              {
+   1024                resourceOK = 1;
+   1025              }
+   1026          
+   1027              /* now process the resource validation */
+   1028              if (resourceOK == 0)
+   1029              {
+   1030                XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+   1031                return;
+   1032              }
+   1033          
+   1034              /* check if the resource is already unlocked */
+   1035              if ((xcpInfo.protection & data[2]) == 0)
+   1036              {
+   1037                /* set the seed length to 0 to indicate that the resource is already unlocked */
+   1038                xcpInfo.ctoData[1] = 0;
+   1039                /* set packet length */
+   1040                xcpInfo.ctoLen = 2;
+   1041                /* no need to continue processing */
+   1042                return;
+   1043              }
+   1044          
+   1045              /* store resource for which the seed/key sequence is started */
+   1046              xcpInfo.s_n_k_resource = data[2];
+   1047            }
+   1048          
+   1049            /* process the mode flag. 0 is first part of the seed, 1 is remainder of the seed */
+   1050            if (data[1] == 0)
+   1051            {
+   1052              /* set flag that a seed reading sequence is now in progress */
+   1053              sequenceInProgress = BLT_TRUE;
+   1054              /* obtain the seed and store it in the buffer */
+   1055              seedRemainderLen = XcpGetSeed(xcpInfo.s_n_k_resource, seedBuffer);
+   1056              /* protect against buffer overrun */
+   1057              ASSERT_RT(seedRemainderLen <= XCP_SEED_MAX_LEN);
+   1058              /* set seed pointer */
+   1059              seedCurrentPtr = &seedBuffer[0];
+   1060            }
+   1061            /* seed remainder is requested */
+   1062            else
+   1063            {
+   1064              /* this is only allowed if a sequence is in progress */
+   1065              if (sequenceInProgress == BLT_FALSE)
+   1066              {
+   1067                /* invalid sequence */
+   1068                XcpSetCtoError(XCP_ERR_SEQUENCE);
+   1069                /* reset seed/key resource variable for possible next unlock */
+   1070                xcpInfo.s_n_k_resource = 0;
+   1071                return;
+   1072              }
+   1073            }
+   1074            /* determine number of seed bytes that fit in the first response */
+   1075            seedCurrentLen = seedRemainderLen;
+   1076            if (seedCurrentLen > (XCP_DTO_PACKET_LEN-2))
+   1077            {
+   1078              seedCurrentLen = XCP_DTO_PACKET_LEN-2;
+   1079            }
+   1080            /* store the first part of the seed in the response */
+   1081            CpuMemCopy((blt_addr)(&xcpInfo.ctoData[2]), (blt_addr)seedCurrentPtr, seedCurrentLen);
+   1082            xcpInfo.ctoData[1] = seedRemainderLen;
+   1083            /* update control variables */
+   1084            seedRemainderLen -= seedCurrentLen;
+   1085            seedCurrentPtr += seedCurrentLen;
+   1086            /* reset sequence flag at the end of the sequence */
+   1087            if (seedRemainderLen == 0)
+   1088            {
+   1089              sequenceInProgress = BLT_FALSE;
+   1090            }
+   1091            /* set packet length */
+   1092            xcpInfo.ctoLen = seedCurrentLen + 2;
+   1093          } /*** end of XcpCmdGetSeed ***/
+   1094          
+   1095          
+   1096          /************************************************************************************//**
+   1097          ** \brief     XCP command processor function which handles the UNLOCK command as
+   1098          **            defined by the protocol.
+   1099          ** \param     data Pointer to a byte buffer with the packet data.
+   1100          ** \return    none
+   1101          **
+   1102          ****************************************************************************************/
+   1103          static void XcpCmdUnlock(blt_int8u *data)
+   1104          {
+   1105            /* made key buffer static to lower stack load */
+   1106            static blt_int8u keyBuffer[XCP_KEY_MAX_LEN];
+   1107            static blt_int8u keyPreviousRemainder = 0;
+   1108            static blt_int8u keyTotalLen = 0;
+   1109            static blt_int8u *keyCurrentPtr;
+   1110            static blt_int8u keyReceivedLen = 0;
+   1111            blt_int8u keyCurrentLen;
+   1112          
+   1113            /* verify that the key will actually fit in the buffer */
+   1114            if (data[1] > XCP_KEY_MAX_LEN)
+   1115            {
+   1116              /* reset previous remainder for the next loop iteration */
+   1117              keyPreviousRemainder = 0;
+   1118              /* key is too long */
+   1119              XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+   1120              /* reset seed/key resource variable for possible next unlock */
+   1121              xcpInfo.s_n_k_resource = 0;
+   1122              return;
+   1123            }
+   1124          
+   1125            /* is this the start of a key reception? the first unlock message contains the total
+   1126             * length of the key and subsequent messages the remainder length. if the received
+   1127             * length is >= than the previously received remainder, it must be the reception
+   1128             * start of a new key.
+   1129             */
+   1130            if (data[1] >= keyPreviousRemainder)
+   1131            {
+   1132              /* store the total length of the key */
+   1133              keyTotalLen = data[1];
+   1134              /* initialize pointer to key reception buffer */
+   1135              keyCurrentPtr = &keyBuffer[0];
+   1136              /* reset number of received key bytes */
+   1137              keyReceivedLen = 0;
+   1138          
+   1139            }
+   1140            /* store length / remainder for checking during the next iteration */
+   1141            keyPreviousRemainder = data[1];
+   1142            /* determine how many key bytes were received */
+   1143            keyCurrentLen = data[1];
+   1144            if (keyCurrentLen > (XCP_CTO_PACKET_LEN-2))
+   1145            {
+   1146              keyCurrentLen = XCP_CTO_PACKET_LEN-2;
+   1147            }
+   1148            /* store the received key bytes to the buffer */
+   1149            CpuMemCopy((blt_addr)keyCurrentPtr, (blt_addr)(&data[2]), keyCurrentLen);
+   1150            /* update control variables */
+   1151            keyCurrentPtr += keyCurrentLen;
+   1152            keyReceivedLen += keyCurrentLen;
+   1153            /* check if the entire key was received */
+   1154            if (keyReceivedLen >= keyTotalLen)
+   1155            {
+   1156              /* reset previous remainder for the next loop iteration */
+   1157              keyPreviousRemainder = 0;
+   1158              /* verify the key */
+   1159              if (XcpVerifyKey(xcpInfo.s_n_k_resource, keyBuffer, keyTotalLen) == 0)
+   1160              {
+   1161                /* invalid key so inform the master and do a disconnect */
+   1162                XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1163                /* indicate that the xcp connection is disconnected */
+   1164                xcpInfo.connected = 0;
+   1165                /* reset seed/key resource variable for possible next unlock */
+   1166                xcpInfo.s_n_k_resource = 0;
+   1167                /* enable resource protection */
+   1168                XcpProtectResources();
+   1169                return;
+   1170              }
+   1171              /* key correct so unlock the resource */
+   1172              xcpInfo.protection &= ~xcpInfo.s_n_k_resource;
+   1173              /* reset seed/key resource variable for possible next unlock */
+   1174              xcpInfo.s_n_k_resource = 0;
+   1175            }
+   1176          
+   1177            /* set packet id to command response packet */
+   1178            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1179            /* report the current resource protection */
+   1180            xcpInfo.ctoData[1] = xcpInfo.protection;
+   1181            /* set packet length */
+   1182            xcpInfo.ctoLen = 2;
+   1183          } /*** end of XcpCmdUnlock ***/
+   1184          #endif /* XCP_SEED_KEY_PROTECTION_EN == 1 */
+   1185          
+   1186          
+   1187          #if (XCP_RES_PAGING_EN == 1)
+   1188          /************************************************************************************//**
+   1189          ** \brief     XCP command processor function which handles the SET_CAL_PAGE command as
+   1190          **            defined by the protocol.
+   1191          ** \param     data Pointer to a byte buffer with the packet data.
+   1192          ** \return    none
+   1193          **
+   1194          ****************************************************************************************/
+   1195          static void XcpCmdSetCalPage(blt_int8u *data)
+   1196          {
+   1197          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1198            /* check if CAL_PAG resource is unlocked */
+   1199            if ((xcpInfo.protection & XCP_RES_CALPAG) == XCP_RES_CALPAG)
+   1200            {
+   1201              /* resource is locked. use seed/key sequence to unlock */
+   1202              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1203              return;
+   1204            }
+   1205          #endif
+   1206          
+   1207            /* select the page. note that the mode parameter is ignored */
+   1208            if (XcpCalSetPageHook(data[2], data[3]) == 0)
+   1209            {
+   1210              /* calibration page could not be selected */
+   1211              XcpSetCtoError(XCP_ERR_PAGE_NOT_VALID);
+   1212              return;
+   1213            }
+   1214          
+   1215            /* set packet id to command response packet */
+   1216            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1217          
+   1218            /* set packet length */
+   1219            xcpInfo.ctoLen = 1;
+   1220          } /*** end of XcpCmdSetCalPage ***/
+   1221          
+   1222          
+   1223          /************************************************************************************//**
+   1224          ** \brief     XCP command processor function which handles the GET_CAL_PAGE command as
+   1225          **            defined by the protocol.
+   1226          ** \param     data Pointer to a byte buffer with the packet data.
+   1227          ** \return    none
+   1228          **
+   1229          ****************************************************************************************/
+   1230          static void XcpCmdGetCalPage(blt_int8u *data)
+   1231          {
+   1232          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1233            /* check if CAL_PAG resource is unlocked */
+   1234            if ((xcpInfo.protection & XCP_RES_CALPAG) == XCP_RES_CALPAG)
+   1235            {
+   1236              /* resource is locked. use seed/key sequence to unlock */
+   1237              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1238              return;
+   1239            }
+   1240          #endif
+   1241          
+   1242            /* set packet id to command response packet */
+   1243            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1244          
+   1245            /* initialize reserved parameters */
+   1246            xcpInfo.ctoData[1] = 0;
+   1247            xcpInfo.ctoData[2] = 0;
+   1248          
+   1249            /* store the calibration page */
+   1250            xcpInfo.ctoData[3] = XcpCalGetPageHook(data[2]);
+   1251          
+   1252            /* set packet length */
+   1253            xcpInfo.ctoLen = 4;
+   1254          } /*** end of XcpCmdGetCalPage ***/
+   1255          #endif /* XCP_RES_PAGING_EN == 1 */
+   1256          
+   1257          
+   1258          #if (XCP_RES_PROGRAMMING_EN == 1)
+   1259          /************************************************************************************//**
+   1260          ** \brief     XCP command processor function which handles the PROGRAM_START command as
+   1261          **            defined by the protocol.
+   1262          ** \param     data Pointer to a byte buffer with the packet data.
+   1263          ** \return    none
+   1264          **
+   1265          ****************************************************************************************/
+   1266          static void XcpCmdProgramStart(blt_int8u *data)
+   1267          {
+   1268            /* suppress compiler warning for unused parameter */
+   1269            data = data;
+   1270          
+   1271          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1272            /* check if PGM resource is unlocked */
+   1273            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1274            {
+   1275              /* resource is locked. use seed/key sequence to unlock */
+   1276              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1277              return;
+   1278            }
+   1279          #endif
+   1280          
+   1281            /* set packet id to command response packet */
+   1282            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1283          
+   1284            /* initialize reserved parameter */
+   1285            xcpInfo.ctoData[1] = 0;
+   1286          
+   1287            /* no special communication mode supported during programming */
+   1288            xcpInfo.ctoData[2] = 0;
+   1289          
+   1290            /* cto packet length stays the same during programming */
+   1291            xcpInfo.ctoData[3] = (blt_int8u)XCP_CTO_PACKET_LEN;
+   1292          
+   1293            /* no block size, st-min time, or queue size supported */
+   1294            xcpInfo.ctoData[4] = 0;
+   1295            xcpInfo.ctoData[5] = 0;
+   1296            xcpInfo.ctoData[6] = 0;
+   1297          
+   1298            /* set packet length */
+   1299            xcpInfo.ctoLen = 7;
+   1300          } /*** end of XcpCmdProgramStart ***/
+   1301          
+   1302          
+   1303          /************************************************************************************//**
+   1304          ** \brief     XCP command processor function which handles the PROGRAM_MAX command as
+   1305          **            defined by the protocol.
+   1306          ** \param     data Pointer to a byte buffer with the packet data.
+   1307          ** \return    none
+   1308          **
+   1309          ****************************************************************************************/
+   1310          static void XcpCmdProgramMax(blt_int8u *data)
+   1311          {
+   1312          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1313            /* check if PGM resource is unlocked */
+   1314            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1315            {
+   1316              /* resource is locked. use seed/key sequence to unlock */
+   1317              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1318              return;
+   1319            }
+   1320          #endif
+   1321          
+   1322            /* program the data */
+   1323            if (NvmWrite((blt_addr)xcpInfo.mta, XCP_CTO_PACKET_LEN-1, &data[1]) == BLT_FALSE)
+   1324            {
+   1325              /* error occurred during programming */
+   1326              XcpSetCtoError(XCP_ERR_GENERIC);
+   1327              return;
+   1328            }
+   1329          
+   1330            /* set packet id to command response packet */
+   1331            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1332          
+   1333            /* post increment the mta */
+   1334            xcpInfo.mta += XCP_CTO_PACKET_LEN-1;
+   1335          
+   1336            /* set packet length */
+   1337            xcpInfo.ctoLen = 1;
+   1338          } /*** end of XcpCmdProgramMax ***/
+   1339          
+   1340          
+   1341          /************************************************************************************//**
+   1342          ** \brief     XCP command processor function which handles the PROGRAM command as
+   1343          **            defined by the protocol.
+   1344          ** \param     data Pointer to a byte buffer with the packet data.
+   1345          ** \return    none
+   1346          **
+   1347          ****************************************************************************************/
+   1348          static void XcpCmdProgram(blt_int8u *data)
+   1349          {
+   1350          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1351            /* check if PGM resource is unlocked */
+   1352            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1353            {
+   1354              /* resource is locked. use seed/key sequence to unlock */
+   1355              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1356              return;
+   1357            }
+   1358          #endif
+   1359          
+   1360            /* validate length of download request */
+   1361            if (data[1] > (XCP_CTO_PACKET_LEN-2))
+   1362            {
+   1363              /* requested data length is too long */
+   1364              XcpSetCtoError(XCP_ERR_OUT_OF_RANGE);
+   1365              return;
+   1366            }
+   1367          
+   1368            /* set packet id to command response packet */
+   1369            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1370          
+   1371            /* set packet length */
+   1372            xcpInfo.ctoLen = 1;
+   1373          
+   1374            /* end of programming sequence (datasize is 0)? */
+   1375            if (data[1] == 0)
+   1376            {
+   1377              /* call erase/programming cleanup routine */
+   1378              if (NvmDone() == BLT_FALSE)
+   1379              {
+   1380                /* error occurred while finishing up programming */
+   1381                XcpSetCtoError(XCP_ERR_GENERIC);
+   1382              }
+   1383              return;
+   1384            }
+   1385            /* program the data */
+   1386            if (NvmWrite((blt_addr)xcpInfo.mta, data[1], &data[2]) == BLT_FALSE)
+   1387            {
+   1388              /* error occurred during programming */
+   1389              XcpSetCtoError(XCP_ERR_GENERIC);
+   1390              return;
+   1391            }
+   1392          
+   1393            /* post increment the mta */
+   1394            xcpInfo.mta += data[1];
+   1395          } /*** end of XcpCmdProgram ***/
+   1396          
+   1397          
+   1398          /************************************************************************************//**
+   1399          ** \brief     XCP command processor function which handles the PROGRAM_CLEAR command as
+   1400          **            defined by the protocol.
+   1401          ** \param     data Pointer to a byte buffer with the packet data.
+   1402          ** \return    none
+   1403          **
+   1404          ****************************************************************************************/
+   1405          static void XcpCmdProgramClear(blt_int8u *data)
+   1406          {
+   1407            blt_int32u eraseLen;
+   1408            blt_addr   eraseAddr;
+   1409            
+   1410          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1411            /* check if PGM resource is unlocked */
+   1412            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1413            {
+   1414              /* resource is locked. use seed/key sequence to unlock */
+   1415              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1416              return;
+   1417            }
+   1418          #endif
+   1419          
+   1420            /* erase the memory */
+   1421            eraseAddr = xcpInfo.mta;
+   1422            eraseLen = XcpGetOrderedLong(&data[4]);
+   1423            if (NvmErase(eraseAddr, eraseLen) == BLT_FALSE)
+   1424            {
+   1425              /* error occurred during erasure */
+   1426              XcpSetCtoError(XCP_ERR_GENERIC);
+   1427              return;
+   1428            }
+   1429          
+   1430            /* set packet id to command response packet */
+   1431            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1432          
+   1433            /* set packet length */
+   1434            xcpInfo.ctoLen = 1;
+   1435          } /*** end of XcpCmdProgramClear ***/
+   1436          
+   1437          
+   1438          /************************************************************************************//**
+   1439          ** \brief     XCP command processor function which handles the PROGRAM_RESET command as
+   1440          **            defined by the protocol.
+   1441          ** \param     data Pointer to a byte buffer with the packet data.
+   1442          ** \return    none
+   1443          **
+   1444          ****************************************************************************************/
+   1445          static void XcpCmdProgramReset(blt_int8u *data)
+   1446          {
+   1447            /* suppress compiler warning for unused parameter */
+   1448            data = data;
+   1449          
+   1450          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1451            /* check if PGM resource is unlocked */
+   1452            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1453            {
+   1454              /* resource is locked. use seed/key sequence to unlock */
+   1455              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1456              return;
+   1457            }
+   1458          #endif
+   1459          
+   1460            /* reset the ecu after programming is done. so basically, just start the newly programmed
+   1461             * firmware. it is okay if the code does not return here. 
+   1462             */
+   1463            CpuStartUserProgram();
+   1464          
+   1465            /* set packet id to command response packet */
+   1466            xcpInfo.ctoData[0] = XCP_PID_RES;
+   1467          
+   1468            /* set packet length */
+   1469            xcpInfo.ctoLen = 1;
+   1470          } /*** end of XcpCmdProgramReset ***/
+   1471          
+   1472          
+   1473          /************************************************************************************//**
+   1474          ** \brief     XCP command processor function which handles the PROGRAM_PREPARE command as
+   1475          **            defined by the protocol.
+   1476          ** \param     data Pointer to a byte buffer with the packet data.
+   1477          ** \return    none
+   1478          **
+   1479          ****************************************************************************************/
+   1480          static void XcpCmdProgramPrepare(blt_int8u *data)
+   1481          {
+   1482          #if (XCP_SEED_KEY_PROTECTION_EN == 1)
+   1483            /* check if PGM resource is unlocked */
+   1484            if ((xcpInfo.protection & XCP_RES_PGM) == XCP_RES_PGM)
+   1485            {
+   1486              /* resource is locked. use seed/key sequence to unlock */
+   1487              XcpSetCtoError(XCP_ERR_ACCESS_LOCKED);
+   1488              return;
+   1489            }
+   1490          #endif
+   1491          
+   1492            /* programming with kernel currently not needed and therefore not supported */
+   1493            XcpSetCtoError(XCP_ERR_GENERIC);
+   1494            return;
+   1495          } /*** end of XcpCmdProgramPrepare ***/
+   1496          #endif /* XCP_RES_PROGRAMMING_EN == 1 */
+   1497          
+   1498          #endif /* BOOT_COM_ENABLE > 0 */
+   1499          
+   1500          /******************************** end of xcp.c *****************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+      16   XcpCmdBuildCheckSum
+        16   -> XcpComputeChecksum
+        16   -> XcpGetOrderedLong
+        16   -> XcpSetOrderedLong
+       8   XcpCmdConnect
+         8   -> ComGetActiveInterfaceMaxRxLen
+         8   -> ComGetActiveInterfaceMaxTxLen
+         8   -> NvmInit
+         8   -> XcpProtectResources
+       8   XcpCmdDisconnect
+         8   -> XcpProtectResources
+       8   XcpCmdGetId
+         8   -> XcpSetOrderedLong
+       0   XcpCmdGetStatus
+      16   XcpCmdProgram
+        16   -> ComGetActiveInterfaceMaxRxLen
+        16   -> NvmDone
+        16   -> NvmWrite
+        16   -> XcpSetCtoError
+      16   XcpCmdProgramClear
+        16   -> NvmErase
+        16   -> XcpGetOrderedLong
+        16   -> XcpSetCtoError
+      16   XcpCmdProgramMax
+        16   -> ComGetActiveInterfaceMaxRxLen
+        16   -> NvmWrite
+        16   -> XcpSetCtoError
+       8   XcpCmdProgramPrepare
+         8   -> XcpSetCtoError
+       8   XcpCmdProgramReset
+         8   -> CpuStartUserProgram
+       8   XcpCmdProgramStart
+         8   -> ComGetActiveInterfaceMaxRxLen
+       8   XcpCmdSetMta
+         8   -> XcpGetOrderedLong
+      16   XcpCmdShortUpload
+        16   -> ComGetActiveInterfaceMaxRxLen
+        16   -> CpuMemCopy
+        16   -> XcpGetOrderedLong
+        16   -> XcpSetCtoError
+       8   XcpCmdSynch
+         8   -> XcpSetCtoError
+      16   XcpCmdUpload
+        16   -> ComGetActiveInterfaceMaxRxLen
+        16   -> CpuMemCopy
+        16   -> XcpSetCtoError
+      24   XcpComputeChecksum
+        24   -> CopService
+       0   XcpGetOrderedLong
+       0   XcpInit
+       0   XcpIsConnected
+       8   XcpPacketReceived
+         8   -> XcpCmdBuildCheckSum
+         8   -> XcpCmdConnect
+         8   -> XcpCmdDisconnect
+         8   -> XcpCmdGetId
+         8   -> XcpCmdGetStatus
+         8   -> XcpCmdProgram
+         8   -> XcpCmdProgramClear
+         8   -> XcpCmdProgramMax
+         8   -> XcpCmdProgramPrepare
+         8   -> XcpCmdProgramReset
+         8   -> XcpCmdProgramStart
+         8   -> XcpCmdSetMta
+         8   -> XcpCmdShortUpload
+         8   -> XcpCmdSynch
+         8   -> XcpCmdUpload
+         8   -> XcpSetCtoError
+         8   -> XcpTransmitPacket
+       0   XcpPacketTransmitted
+       0   XcpProtectResources
+       0   XcpSetCtoError
+       0   XcpSetOrderedLong
+       8   XcpTransmitPacket
+         8   -> ComTransmitPacket
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable18
+       4  ??DataTable18_1
+      56  XcpCmdBuildCheckSum
+      80  XcpCmdConnect
+      26  XcpCmdDisconnect
+      42  XcpCmdGetId
+      36  XcpCmdGetStatus
+      98  XcpCmdProgram
+      46  XcpCmdProgramClear
+      68  XcpCmdProgramMax
+      10  XcpCmdProgramPrepare
+      20  XcpCmdProgramReset
+      42  XcpCmdProgramStart
+      26  XcpCmdSetMta
+      78  XcpCmdShortUpload
+      10  XcpCmdSynch
+      68  XcpCmdUpload
+      38  XcpComputeChecksum
+      28  XcpGetOrderedLong
+      42  XcpInit
+      20  XcpIsConnected
+     222  XcpPacketReceived
+      12  XcpPacketTransmitted
+      10  XcpProtectResources
+      16  XcpSetCtoError
+      20  XcpSetOrderedLong
+      10  XcpTransmitPacket
+     140  xcpInfo
+       8  xcpStationId
+
+ 
+   140 bytes in section .bss
+     8 bytes in section .rodata
+ 1'132 bytes in section .text
+ 
+ 1'132 bytes of CODE  memory
+     8 bytes of CONST memory
+   140 bytes of DATA  memory
+
+Errors: none
+Warnings: none

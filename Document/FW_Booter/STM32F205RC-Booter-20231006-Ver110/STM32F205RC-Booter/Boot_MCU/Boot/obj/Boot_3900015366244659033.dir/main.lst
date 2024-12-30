@@ -1,0 +1,600 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:20
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Boot_MCU\Boot\main.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\main.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\main.c -D USE_HAL_DRIVER -D
+#        USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\main.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\main.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\Boot_3900015366244659033.dir\main.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\main.c
+      1          /************************************************************************************//**
+      2          * \file         Demo/ARMCM3_STM32F2_Olimex_STM32P207_IAR/Boot/main.c
+      3          * \brief        Bootloader application source file.
+      4          * \ingroup      Boot_ARMCM3_STM32F2_Olimex_STM32P207_IAR
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2018  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "stm32f2xx.h"                           /* STM32 registers and drivers        */
+     34          #include "stm32f2xx_ll_rcc.h"                    /* STM32 LL RCC header                */
+     35          #include "stm32f2xx_ll_bus.h"                    /* STM32 LL BUS header                */
+     36          #include "stm32f2xx_ll_system.h"                 /* STM32 LL SYSTEM header             */
+     37          #include "stm32f2xx_ll_utils.h"                  /* STM32 LL UTILS header              */
+     38          #include "stm32f2xx_ll_usart.h"                  /* STM32 LL USART header              */
+     39          #include "stm32f2xx_ll_gpio.h"                   /* STM32 LL GPIO header               */
+     40          
+     41          
+     42          /****************************************************************************************
+     43          * Function prototypes
+     44          ****************************************************************************************/
+     45          static void Init(void);
+     46          static void SystemClock_Config(void);
+     47          
+     48          
+     49          /************************************************************************************//**
+     50          ** \brief     This is the entry point for the bootloader application and is called
+     51          **            by the reset interrupt vector after the C-startup routines executed.
+     52          ** \return    none.
+     53          **
+     54          ****************************************************************************************/
+     55          #if 0
+     56          void Boot_Init_Message(void)
+     57          {
+     58              void Rs232TransmitByte(blt_int8u data);
+     59              blt_int16u k;
+     60              const blt_int8u initMsg[] = "\n\n\n/* -- STM32F205RC Booter - Ver1.10  -- */ \n";
+     61            
+     62              LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+     63              HAL_Delay(1);
+     64              Rs232TransmitByte('\n');
+     65              for(k = 0; k < sizeof(initMsg); k++)
+     66                  Rs232TransmitByte(initMsg[k]);
+     67          }
+     68          #else
+     69          void Boot_Init_Message(void)
+     70          {
+     71              Debug_Message("\n\n\n");
+     72              Debug_Message("--------------------------------------------\n");
+     73              Debug_Message("/*     STM32F205RC Booter - Ver1.10       */\n");
+     74              Debug_Message("     . BOOT_NVM_SIZE_KB = 256               \n");
+     75              Debug_Message("     . BOOT_CPU_USER_PROGRAM_START_HOOK (0) \n");
+     76              Debug_Message("--------------------------------------------\n\n");
+     77          }
+     78          #endif
+     79          
+     80          #if 1
+     81          void Debug_Message(const blt_int8u debugMsg[] )
+     82          {
+     83              
+     84              int k;
+     85            
+     86              LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+     87              HAL_Delay(1);
+     88              
+     89              for(k = 0; k < 100 && debugMsg[k] != NULL; k++)
+     90              {
+     91                  Rs232TransmitByte(debugMsg[k]);
+     92              }
+     93          }
+     94          #else
+     95          void Debug_Message(const blt_int8u debugMsg[], int len )
+     96          {
+     97              void Rs232TransmitByte(blt_int8u data);
+     98              int k;
+     99            
+    100              LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);   // RS485 - TX
+    101              HAL_Delay(1);
+    102              for(k = 0; k < len; k++)
+    103              {
+    104              //    Rs232TransmitByte(debugMsg[k]);
+    105              }
+    106              
+    107              for(k = 0; k < len && debugMsg[k] != NULL; k++)
+    108              {
+    109                  Rs232TransmitByte(debugMsg[k]);
+    110              }
+    111          }
+    112          #endif
+    113          
+    114          
+    115          
+    116          
+    117          int main(void)
+    118          {
+    119              /* initialize the microcontroller */
+    120              Init();
+    121              /* initialize the bootloader */
+    122              BootInit();
+    123          
+    124              Boot_Init_Message();
+    125          
+    126              /* start the infinite program loop */
+    127              while (1)
+    128              {
+    129                  /* run the bootloader task */
+    130                  BootTask();
+    131              }
+    132              
+    133          } /*** end of main ***/
+    134          
+    135          
+    136          /************************************************************************************//**
+    137          ** \brief     Initializes the microcontroller.
+    138          ** \return    none.
+    139          **
+    140          ****************************************************************************************/
+    141          static void Init(void)
+    142          {
+    143            /* HAL library initialization */
+    144            HAL_Init();
+    145            /* configure system clock */
+    146            SystemClock_Config();
+    147          } /*** end of Init ***/
+    148          
+    149          
+    150          /************************************************************************************//**
+    151          ** \brief     System Clock Configuration. This code was created by CubeMX and configures
+    152          **            the system clock to match the configuration in the bootloader's
+    153          **            configuration (blt_conf.h), specifically the macros:
+    154          **            BOOT_CPU_SYSTEM_SPEED_KHZ and BOOT_CPU_XTAL_SPEED_KHZ.
+    155          **            Note that the Lower Layer drivers were selected in CubeMX for the RCC
+    156          **            subsystem.
+    157          ** \return    none.
+    158          **
+    159          ****************************************************************************************/
+    160          static void SystemClock_Config(void)
+    161          {
+    162              /* Set flash latency. */
+    163              LL_FLASH_SetLatency(LL_FLASH_LATENCY_3);
+    164              /* Verify flash latency setting. */
+    165              if(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_3)
+    166              {
+    167                /* Error setting flash latency. */
+    168                ASSERT_RT(BLT_FALSE);
+    169              }
+    170          
+    171              /* Enable the HSE clock. */
+    172              LL_RCC_HSE_Enable();
+    173              
+    174              /* Wait till HSE is ready. */
+    175              while(LL_RCC_HSE_IsReady() != 1)
+    176              {
+    177                ;
+    178              }
+    179          
+    180              /* Configure and enable the PLL. */
+    181              //LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_25, 240, LL_RCC_PLLP_DIV_2);
+    182              LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE, LL_RCC_PLLM_DIV_20, 192, LL_RCC_PLLP_DIV_2);
+    183              LL_RCC_PLL_Enable();
+    184              
+    185              /* Wait till PLL is ready */
+    186              while(LL_RCC_PLL_IsReady() != 1)
+    187              {
+    188                ;
+    189              }
+    190              LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+    191              LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_4);
+    192              LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_2);
+    193              LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
+    194          
+    195              /* Wait till System clock is ready */
+    196              while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
+    197              {
+    198                ;
+    199              }
+    200          
+    201              /* Update the system clock speed setting. */
+    202              LL_SetSystemCoreClock(BOOT_CPU_SYSTEM_SPEED_KHZ * 1000u);
+    203          } /*** end of SystemClock_Config ***/
+    204          
+    205          
+    206          /************************************************************************************//**
+    207          ** \brief     Initializes the Global MSP. This function is called from HAL_Init()
+    208          **            function to perform system level initialization (GPIOs, clock, DMA,
+    209          **            interrupt).
+    210          ** \return    none.
+    211          **
+    212          ****************************************************************************************/
+    213          void HAL_MspInit(void)
+    214          {
+    215              //LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    216              
+    217              /* SYSCFG clock enable. */
+    218              LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+    219          
+    220              /* GPIO ports clock enable. */
+    221              LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+    222              LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOB);
+    223              LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
+    224              //LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOD);
+    225              //LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOF);
+    226          
+    227              #if ( BOOT_DEBUG_UART_ENABLE > 0 )
+    228                static void MSP_Init_USART(void);
+    229                MSP_Init_USART();
+    230              #endif 
+    231          
+    232              #if (BOOT_COM_CAN_ENABLE > 0)
+    233                static void MSP_Init_CAN(void);
+    234                MSP_Init_CAN();
+    235              #endif
+    236            
+    237              static void  MSP_Init_GPIO(void);
+    238              MSP_Init_GPIO();
+    239          
+    240          
+    241          } /*** end of HAL_MspInit ***/
+    242          
+    243          #if ( ((BOOT_FILE_LOGGING_ENABLE > 0) && (BOOT_COM_RS232_ENABLE == 0)) || \
+    244                (BOOT_DEBUG_UART_ENABLE > 0) ) 
+    245          
+    246          static void MSP_Init_USART(void)
+    247          {
+    248              //LL_USART_InitTypeDef USART_InitStruct = {0};
+    249              LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    250          
+    251              /* Peripheral clock enable */
+    252              LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART6);
+    253              LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
+    254              
+    255              /**USART6 GPIO Configuration
+    256              PC6   ------> USART6_TX
+    257              PC7   ------> USART6_RX
+    258              */
+    259              GPIO_InitStruct.Pin = LL_GPIO_PIN_6 | LL_GPIO_PIN_7;
+    260              GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    261              GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    262              GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    263              GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    264              GPIO_InitStruct.Alternate = LL_GPIO_AF_8;
+    265              LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    266          }
+    267          
+    268            
+    269          #endif
+    270          
+    271          
+    272          #if (BOOT_COM_CAN_ENABLE > 0)
+    273          
+    274          static void MSP_Init_CAN(void)
+    275          {
+    276              /* CAN clock enable. Note that when using CAN2, the clock for peripheral CAN1 must
+    277              * also be enabled, because CAN2 is a slave of CAN1.
+    278              */
+    279              LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    280              
+    281              LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_CAN1);
+    282              LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_CAN2);
+    283          
+    284              /* CAN TX and RX GPIO pin configuration. */
+    285              GPIO_InitStruct.Pin = LL_GPIO_PIN_12 | LL_GPIO_PIN_13;
+    286              GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+    287              GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+    288              GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    289              GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    290              GPIO_InitStruct.Alternate = LL_GPIO_AF_9;
+    291              LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    292          }
+    293          #endif
+    294          
+    295          
+    296          static void  MSP_Init_GPIO(void)
+    297          {
+    298              LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+    299              
+    300              /* Configure GPIO pin for the POARTA : LED = 11, PRE = 8, CHG = 9, DSG = 10, FRAM_CS = 15, LTC1_CS = 3, LTC2_CS = 4  */
+    301              GPIO_InitStruct.Pin = (LL_GPIO_PIN_3 | LL_GPIO_PIN_4 | LL_GPIO_PIN_8 | LL_GPIO_PIN_9 | LL_GPIO_PIN_10 | LL_GPIO_PIN_11 | LL_GPIO_PIN_15);
+    302              GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    303              GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    304              GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    305              GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+    306              LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    307              LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_11);
+    308                  
+    309              /* Configure GPIO pin for the LED. */
+    310              GPIO_InitStruct.Pin = LL_GPIO_PIN_11;
+    311              GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    312              GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    313              GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    314              GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+    315              LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+    316              LL_GPIO_ResetOutputPin(GPIOA, LL_GPIO_PIN_11);
+    317            
+    318              /* RS485 Enable Pin */
+    319              GPIO_InitStruct.Pin = LL_GPIO_PIN_8;
+    320              GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+    321              GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
+    322              GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+    323              GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+    324              LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    325              LL_GPIO_SetOutputPin(GPIOC, LL_GPIO_PIN_8);     // read mode
+    326              //LL_GPIO_ResetOutputPin(GPIOC, LL_GPIO_PIN_8);
+    327              
+    328              
+    329              /* Configure GPIO pin for (optional) backdoor entry input. */
+    330              #if 0
+    331                GPIO_InitStruct.Pin = LL_GPIO_PIN_13;
+    332                GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
+    333                GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+    334                LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    335              #endif
+    336              
+    337          }
+    338            
+    339          
+    340          
+    341          /************************************************************************************//**
+    342          ** \brief     DeInitializes the Global MSP. This function is called from HAL_DeInit()
+    343          **            function to perform system level de-initialization (GPIOs, clock, DMA,
+    344          **            interrupt).
+    345          ** \return    none.
+    346          **
+    347          ****************************************************************************************/
+    348          void HAL_MspDeInit(void)
+    349          {
+    350            /* Reset the RCC clock configuration to the default reset state. */
+    351            LL_RCC_DeInit();
+    352            
+    353          
+    354            /* Deinit used GPIOs. */
+    355            //LL_GPIO_DeInit(GPIOF);
+    356            //LL_GPIO_DeInit(GPIOD);
+    357            LL_GPIO_DeInit(GPIOC);
+    358            LL_GPIO_DeInit(GPIOB);
+    359            LL_GPIO_DeInit(GPIOA);
+    360          
+    361          #if (BOOT_COM_CAN_ENABLE > 0)
+    362            /* CAN clock disable. */
+    363            LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_CAN1);
+    364          #endif
+    365          
+    366          #if (BOOT_COM_RS232_ENABLE > 0) || (BOOT_FILE_LOGGING_ENABLE > 0)
+    367            /* UART clock disable. */
+    368            LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_USART3);
+    369          #endif
+    370          
+    371            /* GPIO ports clock disable. */
+    372            //LL_AHB1_GRP1_DisableClock(LL_AHB1_GRP1_PERIPH_GPIOF);
+    373            LL_AHB1_GRP1_DisableClock(LL_AHB1_GRP1_PERIPH_GPIOD);
+    374            LL_AHB1_GRP1_DisableClock(LL_AHB1_GRP1_PERIPH_GPIOC);
+    375            LL_AHB1_GRP1_DisableClock(LL_AHB1_GRP1_PERIPH_GPIOB);
+    376            LL_AHB1_GRP1_DisableClock(LL_AHB1_GRP1_PERIPH_GPIOA);
+    377          
+    378            /* SYSCFG clock disable. */
+    379            LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+    380          } /*** end of HAL_MspDeInit ***/
+    381          
+    382          
+    383          /************************************************************************************//**
+    384          ** \brief     This function handles the SysTick interrupt. The HAL driver is initialized
+    385          **            before the bootloader disables the global interrupts and reconfigures the
+    386          **            SysTick. It is theoretically possible that the SysTick interrupt still
+    387          **            fires before the timer driver disables it. Therefore the handler is
+    388          **            implemented here. If not, then the default handler from the C startup 
+    389          **            code is used, which hangs the system.
+    390          ** \return    none.
+    391          **
+    392          ****************************************************************************************/
+    393          void SysTick_Handler(void)
+    394          {
+    395            /* Nothing to do here. */
+    396          } /*** end of SysTick_Handler ***/
+    397          
+    398          
+    399          /*********************************** end of main.c *************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   Boot_Init_Message
+         8   -> Debug_Message
+      16   Debug_Message
+        16   -> HAL_Delay
+        16   -> LL_GPIO_ResetOutputPin
+        16   -> Rs232TransmitByte
+       8   HAL_MspDeInit
+         8   -> LL_AHB1_GRP1_DisableClock
+         8   -> LL_APB1_GRP1_DisableClock
+         8   -> LL_APB2_GRP1_DisableClock
+         8   -> LL_GPIO_DeInit
+         8   -> LL_RCC_DeInit
+       8   HAL_MspInit
+         8   -> LL_AHB1_GRP1_EnableClock
+         8   -> LL_APB2_GRP1_EnableClock
+         8   -> MSP_Init_CAN
+         8   -> MSP_Init_GPIO
+         8   -> MSP_Init_USART
+       8   Init
+         8   -> HAL_Init
+         8   -> SystemClock_Config
+       0   LL_AHB1_GRP1_DisableClock
+       4   LL_AHB1_GRP1_EnableClock
+       0   LL_APB1_GRP1_DisableClock
+       4   LL_APB1_GRP1_EnableClock
+       0   LL_APB2_GRP1_DisableClock
+       4   LL_APB2_GRP1_EnableClock
+       0   LL_FLASH_GetLatency
+       0   LL_FLASH_SetLatency
+       0   LL_GPIO_ResetOutputPin
+       0   LL_GPIO_SetOutputPin
+       0   LL_RCC_GetSysClkSource
+       0   LL_RCC_HSE_Enable
+       0   LL_RCC_HSE_IsReady
+      12   LL_RCC_PLL_ConfigDomain_SYS
+       0   LL_RCC_PLL_Enable
+       0   LL_RCC_PLL_IsReady
+       0   LL_RCC_SetAHBPrescaler
+       0   LL_RCC_SetAPB1Prescaler
+       0   LL_RCC_SetAPB2Prescaler
+       0   LL_RCC_SetSysClkSource
+      32   MSP_Init_CAN
+        32   -> LL_APB1_GRP1_EnableClock
+        32   -> LL_GPIO_Init
+        32   -> memset
+      32   MSP_Init_GPIO
+        32   -> LL_GPIO_Init
+        32   -> LL_GPIO_ResetOutputPin
+        32   -> LL_GPIO_SetOutputPin
+        32   -> memset
+      32   MSP_Init_USART
+        32   -> LL_AHB1_GRP1_EnableClock
+        32   -> LL_APB2_GRP1_EnableClock
+        32   -> LL_GPIO_Init
+        32   -> memset
+       0   SysTick_Handler
+       8   SystemClock_Config
+         8   -> AssertFailure
+         8   -> LL_FLASH_GetLatency
+         8   -> LL_FLASH_SetLatency
+         8   -> LL_RCC_GetSysClkSource
+         8   -> LL_RCC_HSE_Enable
+         8   -> LL_RCC_HSE_IsReady
+         8   -> LL_RCC_PLL_ConfigDomain_SYS
+         8   -> LL_RCC_PLL_Enable
+         8   -> LL_RCC_PLL_IsReady
+         8   -> LL_RCC_SetAHBPrescaler
+         8   -> LL_RCC_SetAPB1Prescaler
+         8   -> LL_RCC_SetAPB2Prescaler
+         8   -> LL_RCC_SetSysClkSource
+         8   -> LL_SetSystemCoreClock
+       8   main
+         8   -> BootInit
+         8   -> BootTask
+         8   -> Boot_Init_Message
+         8   -> Init
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable24
+       4  ??DataTable24_1
+       4  ??DataTable24_10
+       4  ??DataTable24_11
+       4  ??DataTable24_12
+       4  ??DataTable24_13
+       4  ??DataTable24_14
+       4  ??DataTable24_15
+       4  ??DataTable24_16
+       4  ??DataTable24_17
+       4  ??DataTable24_18
+       4  ??DataTable24_2
+       4  ??DataTable24_3
+       4  ??DataTable24_4
+       4  ??DataTable24_5
+       4  ??DataTable24_6
+       4  ??DataTable24_7
+       4  ??DataTable24_8
+       4  ??DataTable24_9
+       4  ?_0
+      48  ?_1
+      48  ?_2
+      48  ?_3
+      48  ?_4
+      48  ?_5
+      44  ?_6
+      40  Boot_Init_Message
+      44  Debug_Message
+      74  HAL_MspDeInit
+      42  HAL_MspInit
+      12  Init
+      12  LL_AHB1_GRP1_DisableClock
+      22  LL_AHB1_GRP1_EnableClock
+      12  LL_APB1_GRP1_DisableClock
+      22  LL_APB1_GRP1_EnableClock
+      12  LL_APB2_GRP1_DisableClock
+      22  LL_APB2_GRP1_EnableClock
+      10  LL_FLASH_GetLatency
+      14  LL_FLASH_SetLatency
+       6  LL_GPIO_ResetOutputPin
+       4  LL_GPIO_SetOutputPin
+      10  LL_RCC_GetSysClkSource
+      14  LL_RCC_HSE_Enable
+      12  LL_RCC_HSE_IsReady
+      26  LL_RCC_PLL_ConfigDomain_SYS
+      12  LL_RCC_PLL_Enable
+      12  LL_RCC_PLL_IsReady
+      14  LL_RCC_SetAHBPrescaler
+      14  LL_RCC_SetAPB1Prescaler
+      14  LL_RCC_SetAPB2Prescaler
+      14  LL_RCC_SetSysClkSource
+      68  MSP_Init_CAN
+     142  MSP_Init_GPIO
+      62  MSP_Init_USART
+       2  SysTick_Handler
+     106  SystemClock_Config
+      20  main
+
+ 
+ 288 bytes in section .rodata
+ 966 bytes in section .text
+ 
+ 966 bytes of CODE  memory
+ 288 bytes of CONST memory
+
+Errors: none
+Warnings: none

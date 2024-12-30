@@ -1,0 +1,309 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:19
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =  R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\cpu.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\cpu.o.rsp
+#        (R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\cpu.c -D USE_HAL_DRIVER
+#        -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\cpu.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\cpu.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\ARMCM3_STM32F2_12879159777159738471.dir\cpu.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Source\ARMCM3_STM32F2\cpu.c
+      1          /************************************************************************************//**
+      2          * \file         Source/ARMCM3_STM32F2/cpu.c
+      3          * \brief        Bootloader cpu module source file.
+      4          * \ingroup      Target_ARMCM3_STM32F2
+      5          * \internal
+      6          *----------------------------------------------------------------------------------------
+      7          *                          C O P Y R I G H T
+      8          *----------------------------------------------------------------------------------------
+      9          *   Copyright (c) 2016  by Feaser    http://www.feaser.com    All rights reserved
+     10          *
+     11          *----------------------------------------------------------------------------------------
+     12          *                            L I C E N S E
+     13          *----------------------------------------------------------------------------------------
+     14          * This file is part of OpenBLT. OpenBLT is free software: you can redistribute it and/or
+     15          * modify it under the terms of the GNU General Public License as published by the Free
+     16          * Software Foundation, either version 3 of the License, or (at your option) any later
+     17          * version.
+     18          *
+     19          * OpenBLT is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+     20          * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+     21          * PURPOSE. See the GNU General Public License for more details.
+     22          *
+     23          * You have received a copy of the GNU General Public License along with OpenBLT. It
+     24          * should be located in ".\Doc\license.html". If not, contact Feaser to obtain a copy.
+     25          *
+     26          * \endinternal
+     27          ****************************************************************************************/
+     28          
+     29          /****************************************************************************************
+     30          * Include files
+     31          ****************************************************************************************/
+     32          #include "boot.h"                                /* bootloader generic header          */
+     33          #include "stm32f2xx.h"                           /* STM32 registers and drivers        */
+     34          
+     35          
+     36          /****************************************************************************************
+     37          * Macro definitions
+     38          ****************************************************************************************/
+     39          /** \brief Pointer to the user program's reset vector. */
+     40          #define CPU_USER_PROGRAM_STARTADDR_PTR    ((blt_addr)(NvmGetUserProgBaseAddress() + 0x00000004))
+     41          /** \brief Pointer to the user program's vector table. */
+     42          #define CPU_USER_PROGRAM_VECTABLE_OFFSET  ((blt_int32u)NvmGetUserProgBaseAddress())
+     43          
+     44          
+     45          /****************************************************************************************
+     46          * Hook functions
+     47          ****************************************************************************************/
+     48          #if (BOOT_CPU_USER_PROGRAM_START_HOOK > 0)
+     49          extern blt_bool CpuUserProgramStartHook(void);
+     50          #endif
+     51          
+     52          
+     53          /************************************************************************************//**
+     54          ** \brief     Initializes the CPU module.
+     55          ** \return    none.
+     56          **
+     57          ****************************************************************************************/
+     58          void CpuInit(void)
+     59          {
+     60            /* bootloader runs in polling mode so disable the global interrupts. this is done for
+     61             * safety reasons. if the bootloader was started from a running user program, it could 
+     62             * be that the user program did not properly disable the interrupt generation of 
+     63             * peripherals. */
+     64            CpuIrqDisable();
+     65          } /*** end of CpuInit ***/
+     66          
+     67          
+     68          /************************************************************************************//**
+     69          ** \brief     Starts the user program, if one is present. In this case this function
+     70          **            does not return.
+     71          ** \return    none.
+     72          **
+     73          ****************************************************************************************/
+     74          void CpuStartUserProgram(void)
+     75          {
+     76            void (*pProgResetHandler)(void);
+     77          
+     78            /* check if a user program is present by verifying the checksum */
+     79            if (NvmVerifyChecksum() == BLT_FALSE)
+     80            {
+     81          #if (BOOT_COM_DEFERRED_INIT_ENABLE > 0) && (BOOT_COM_ENABLE > 0)
+     82              /* bootloader will stay active so perform deferred initialization to make sure
+     83               * the communication interface that were not yet initialized are now initialized.
+     84               * this is needed to make sure firmware updates via these communication interfaces
+     85               * will be possible.
+     86               */
+     87              ComDeferredInit();
+     88          #endif
+     89              /* not a valid user program so it cannot be started */
+     90              
+     91              /*  Debug Message */
+     92              {
+     93                  Debug_Message("CpuStartUserProgram;()\n");
+     94                  Debug_Message(" --> if (NvmVerifyChecksum() == BLT_FALSE) \n");
+     95                  Debug_Message("Return\n\n");
+     96              }
+     97              return;
+     98            }
+     99            
+    100          #if (BOOT_CPU_USER_PROGRAM_START_HOOK > 0)
+    101            /* invoke callback */
+    102            Debug_Message("BOOT_CPU_USER_PROGRAM_START_HOOK > 0\n");
+    103          
+    104            if (CpuUserProgramStartHook() == BLT_FALSE)
+    105            {
+    106            #if (BOOT_COM_DEFERRED_INIT_ENABLE > 0) && (BOOT_COM_ENABLE > 0)
+    107              /* bootloader will stay active so perform deferred initialization to make sure
+    108               * the communication interface that were not yet initialized are now initialized.
+    109               * this is needed to make sure firmware updates via these communication interfaces
+    110               * will be possible.
+    111               */
+    112              ComDeferredInit();
+    113            #endif
+    114              /* callback requests the user program to not be started */
+    115              Debug_Message("CpuUserProgramStartHook() == BLT_FALSE\n");
+    116              return;
+    117            }
+    118          #endif
+    119            
+    120          #if (BOOT_COM_ENABLE > 0)
+    121            /* release the communication interface */
+    122            ComFree();
+    123          #endif   
+    124              
+    125            Debug_Message("NvmVerifyChecksum() is Good !!\n");
+    126            Debug_Message("Jump to Main() \n\n");
+    127          
+    128            /* reset the HAL */
+    129            HAL_DeInit();
+    130            /* reset the timer */
+    131            TimerReset();
+    132            /* remap user program's vector table */
+    133            SCB->VTOR = CPU_USER_PROGRAM_VECTABLE_OFFSET & (blt_int32u)0x1FFFFF80;
+    134            /* set the address where the bootloader needs to jump to. this is the address of
+    135             * the 2nd entry in the user program's vector table. this address points to the
+    136             * user program's reset handler.
+    137             */
+    138            pProgResetHandler = (void(*)(void))(*((blt_addr *)CPU_USER_PROGRAM_STARTADDR_PTR));
+    139            /* The Cortex-M3 core has interrupts enabled out of reset. the bootloader
+    140             * explicitly disables these for security reasons. Enable them here again, so it does 
+    141             * not have to be done by the user program.
+    142             */
+    143            CpuIrqEnable();
+    144            /* start the user program by activating its reset interrupt service routine */
+    145            pProgResetHandler();
+    146          #if (BOOT_COM_DEFERRED_INIT_ENABLE > 0) && (BOOT_COM_ENABLE > 0)
+    147            /* theoretically, the code never gets here because the user program should now be
+    148             * running and the previous function call should not return. In case it did return
+    149             * for whatever reason, make sure all communication interfaces are initialized so that
+    150             * firmware updates can be started.
+    151             */
+    152            ComDeferredInit();
+    153          #endif
+    154          } /*** end of CpuStartUserProgram ***/
+    155          
+    156          
+    157          /************************************************************************************//**
+    158          ** \brief     Copies data from the source to the destination address.
+    159          ** \param     dest Destination address for the data.
+    160          ** \param     src  Source address of the data.
+    161          ** \param     len  length of the data in bytes.
+    162          ** \return    none.
+    163          **
+    164          ****************************************************************************************/
+    165          void CpuMemCopy(blt_addr dest, blt_addr src, blt_int16u len)
+    166          {
+    167            blt_int8u *from, *to;
+    168          
+    169            /* set casted pointers */
+    170            from = (blt_int8u *)src;
+    171            to = (blt_int8u *)dest;
+    172          
+    173            /* copy all bytes from source address to destination address */
+    174            while (len-- > 0)
+    175            {
+    176              /* store byte value from source to destination */
+    177              *to++ = *from++;
+    178              /* keep the watchdog happy */
+    179              CopService();
+    180            }
+    181          } /*** end of CpuMemCopy ***/
+    182          
+    183          
+    184          /************************************************************************************//**
+    185          ** \brief     Sets the bytes at the destination address to the specified value.
+    186          ** \param     dest Destination address for the data.
+    187          ** \param     value Value to write.
+    188          ** \param     len  Number of bytes to write.
+    189          ** \return    none.
+    190          **
+    191          ****************************************************************************************/
+    192          void CpuMemSet(blt_addr dest, blt_int8u value, blt_int16u len)
+    193          {
+    194            blt_int8u *to;
+    195          
+    196            /* set casted pointer */
+    197            to = (blt_int8u *)dest;
+    198          
+    199            /* set all bytes at the destination address to the specified value */
+    200            while (len-- > 0)
+    201            {
+    202              /* set byte value */
+    203              *to++ = value;
+    204              /* keep the watchdog happy */
+    205              CopService();
+    206            }
+    207          } /*** end of CpuMemSet ***/
+    208          
+    209          
+    210          /*********************************** end of cpu.c **************************************/
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       8   CpuInit
+         8   -> CpuIrqDisable
+      16   CpuMemCopy
+        16   -> CopService
+      16   CpuMemSet
+        16   -> CopService
+       8   CpuStartUserProgram
+         8   -- Indirect call
+         8   -> ComFree
+         8   -> CpuIrqEnable
+         8   -> Debug_Message
+         8   -> HAL_DeInit
+         8   -> NvmGetUserProgBaseAddress
+         8   -> NvmVerifyChecksum
+         8   -> TimerReset
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable1
+       4  ??DataTable1_1
+       4  ??DataTable1_2
+       4  ??DataTable1_3
+       4  ??DataTable1_4
+       4  ??DataTable1_5
+       4  ??DataTable1_6
+      24  ?_0
+      48  ?_1
+      12  ?_2
+      32  ?_3
+      20  ?_4
+       8  CpuInit
+      34  CpuMemCopy
+      30  CpuMemSet
+      82  CpuStartUserProgram
+
+ 
+ 136 bytes in section .rodata
+ 182 bytes in section .text
+ 
+ 182 bytes of CODE  memory
+ 136 bytes of CONST memory
+
+Errors: none
+Warnings: none

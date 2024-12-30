@@ -1,0 +1,542 @@
+###############################################################################
+#
+# IAR ANSI C/C++ Compiler V9.40.1.364/W64 for ARM         06/Oct/2023  13:39:19
+# Copyright 1999-2023 IAR Systems AB.
+#
+#    Cpu mode          =  thumb
+#    Endian            =  little
+#    Source file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_usart.c
+#    Command line      =
+#        -f
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_usart.o.rsp
+#        (R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_usart.c
+#        -D USE_HAL_DRIVER -D USE_FULL_LL_DRIVER -D STM32F205xx -lcN
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir -o
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir
+#        --no_cse --no_unroll --no_inline --no_code_motion --no_tbaa
+#        --no_clustering --no_scheduling --debug --endian=little
+#        --cpu=Cortex-M3 -e --fpu=None --dlib_config "C:\Program Files\IAR
+#        Systems\Embedded Workbench 9.4\arm\inc\c\DLib_Config_Normal.h" -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Device\ST\STM32F2xx\Include\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\CMSIS\Include\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\fatfs\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\lib\STM32F2xx_HAL_Driver\Inc\Legacy\
+#        -I R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\ARMCM3_STM32F2\
+#        -I
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\ide\..\..\..\Source\third_party\fatfs\src\
+#        -Ol) --dependencies=n
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_usart.o.iar_deps
+#    Locale            =  C
+#    List file         =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_usart.lst
+#    Object file       =
+#        R:\STM32F205RC-Booter\Boot_MCU\Boot\obj\HAL_6669170930832769733.dir\stm32f2xx_ll_usart.o
+#    Runtime model:       
+#      __CPP_Runtime   =  1
+#      __SystemLibrary =  DLib
+#      __dlib_version  =  6
+#
+###############################################################################
+
+R:\STM32F205RC-Booter\Boot_MCU\Boot\lib\STM32F2xx_HAL_Driver\Src\stm32f2xx_ll_usart.c
+      1          /**
+      2            ******************************************************************************
+      3            * @file    stm32f2xx_ll_usart.c
+      4            * @author  MCD Application Team
+      5            * @brief   USART LL module driver.
+      6            ******************************************************************************
+      7            * @attention
+      8            *
+      9            * <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
+     10            * All rights reserved.</center></h2>
+     11            *
+     12            * This software component is licensed by ST under BSD 3-Clause license,
+     13            * the "License"; You may not use this file except in compliance with the
+     14            * License. You may obtain a copy of the License at:
+     15            *                        opensource.org/licenses/BSD-3-Clause
+     16            *
+     17            ******************************************************************************
+     18            */
+     19          
+     20          #if defined(USE_FULL_LL_DRIVER)
+     21          
+     22          /* Includes ------------------------------------------------------------------*/
+     23          #include "stm32f2xx_ll_usart.h"
+     24          #include "stm32f2xx_ll_rcc.h"
+     25          #include "stm32f2xx_ll_bus.h"
+     26          #ifdef  USE_FULL_ASSERT
+     27          #include "stm32_assert.h"
+     28          #else
+     29          #define assert_param(expr) ((void)0U)
+     30          #endif
+     31          
+     32          /** @addtogroup STM32F2xx_LL_Driver
+     33            * @{
+     34            */
+     35          
+     36          #if defined (USART1) || defined (USART2) || defined (USART3) || defined (USART6) || defined (UART4) || defined (UART5)
+     37          
+     38          /** @addtogroup USART_LL
+     39            * @{
+     40            */
+     41          
+     42          /* Private types -------------------------------------------------------------*/
+     43          /* Private variables ---------------------------------------------------------*/
+     44          /* Private constants ---------------------------------------------------------*/
+     45          /** @addtogroup USART_LL_Private_Constants
+     46            * @{
+     47            */
+     48          
+     49          /**
+     50            * @}
+     51            */
+     52          
+     53          
+     54          /* Private macros ------------------------------------------------------------*/
+     55          /** @addtogroup USART_LL_Private_Macros
+     56            * @{
+     57            */
+     58          
+     59          /* __BAUDRATE__ The maximum Baud Rate is derived from the maximum clock available
+     60           *              divided by the smallest oversampling used on the USART (i.e. 8)    */
+     61          #define IS_LL_USART_BAUDRATE(__BAUDRATE__) ((__BAUDRATE__) <= 7500000U)
+     62          
+     63          /* __VALUE__ In case of oversampling by 16 and 8, BRR content must be greater than or equal to 16d. */
+     64          #define IS_LL_USART_BRR_MIN(__VALUE__) ((__VALUE__) >= 16U)
+     65          
+     66          /* __VALUE__ BRR content must be lower than or equal to 0xFFFF. */
+     67          #define IS_LL_USART_BRR_MAX(__VALUE__) ((__VALUE__) <= 0x0000FFFFU)
+     68          
+     69          #define IS_LL_USART_DIRECTION(__VALUE__) (((__VALUE__) == LL_USART_DIRECTION_NONE) \
+     70                                                 || ((__VALUE__) == LL_USART_DIRECTION_RX) \
+     71                                                 || ((__VALUE__) == LL_USART_DIRECTION_TX) \
+     72                                                 || ((__VALUE__) == LL_USART_DIRECTION_TX_RX))
+     73          
+     74          #define IS_LL_USART_PARITY(__VALUE__) (((__VALUE__) == LL_USART_PARITY_NONE) \
+     75                                              || ((__VALUE__) == LL_USART_PARITY_EVEN) \
+     76                                              || ((__VALUE__) == LL_USART_PARITY_ODD))
+     77          
+     78          #define IS_LL_USART_DATAWIDTH(__VALUE__) (((__VALUE__) == LL_USART_DATAWIDTH_8B) \
+     79                                                 || ((__VALUE__) == LL_USART_DATAWIDTH_9B))
+     80          
+     81          #define IS_LL_USART_OVERSAMPLING(__VALUE__) (((__VALUE__) == LL_USART_OVERSAMPLING_16) \
+     82                                                    || ((__VALUE__) == LL_USART_OVERSAMPLING_8))
+     83          
+     84          #define IS_LL_USART_LASTBITCLKOUTPUT(__VALUE__) (((__VALUE__) == LL_USART_LASTCLKPULSE_NO_OUTPUT) \
+     85                                                        || ((__VALUE__) == LL_USART_LASTCLKPULSE_OUTPUT))
+     86          
+     87          #define IS_LL_USART_CLOCKPHASE(__VALUE__) (((__VALUE__) == LL_USART_PHASE_1EDGE) \
+     88                                                  || ((__VALUE__) == LL_USART_PHASE_2EDGE))
+     89          
+     90          #define IS_LL_USART_CLOCKPOLARITY(__VALUE__) (((__VALUE__) == LL_USART_POLARITY_LOW) \
+     91                                                     || ((__VALUE__) == LL_USART_POLARITY_HIGH))
+     92          
+     93          #define IS_LL_USART_CLOCKOUTPUT(__VALUE__) (((__VALUE__) == LL_USART_CLOCK_DISABLE) \
+     94                                                   || ((__VALUE__) == LL_USART_CLOCK_ENABLE))
+     95          
+     96          #define IS_LL_USART_STOPBITS(__VALUE__) (((__VALUE__) == LL_USART_STOPBITS_0_5) \
+     97                                                || ((__VALUE__) == LL_USART_STOPBITS_1) \
+     98                                                || ((__VALUE__) == LL_USART_STOPBITS_1_5) \
+     99                                                || ((__VALUE__) == LL_USART_STOPBITS_2))
+    100          
+    101          #define IS_LL_USART_HWCONTROL(__VALUE__) (((__VALUE__) == LL_USART_HWCONTROL_NONE) \
+    102                                                 || ((__VALUE__) == LL_USART_HWCONTROL_RTS) \
+    103                                                 || ((__VALUE__) == LL_USART_HWCONTROL_CTS) \
+    104                                                 || ((__VALUE__) == LL_USART_HWCONTROL_RTS_CTS))
+    105          
+    106          /**
+    107            * @}
+    108            */
+    109          
+    110          /* Private function prototypes -----------------------------------------------*/
+    111          
+    112          /* Exported functions --------------------------------------------------------*/
+    113          /** @addtogroup USART_LL_Exported_Functions
+    114            * @{
+    115            */
+    116          
+    117          /** @addtogroup USART_LL_EF_Init
+    118            * @{
+    119            */
+    120          
+    121          /**
+    122            * @brief  De-initialize USART registers (Registers restored to their default values).
+    123            * @param  USARTx USART Instance
+    124            * @retval An ErrorStatus enumeration value:
+    125            *          - SUCCESS: USART registers are de-initialized
+    126            *          - ERROR: USART registers are not de-initialized
+    127            */
+    128          ErrorStatus LL_USART_DeInit(USART_TypeDef *USARTx)
+    129          {
+    130            ErrorStatus status = SUCCESS;
+    131          
+    132            /* Check the parameters */
+    133            assert_param(IS_UART_INSTANCE(USARTx));
+    134          
+    135            if (USARTx == USART1)
+    136            {
+    137              /* Force reset of USART clock */
+    138              LL_APB2_GRP1_ForceReset(LL_APB2_GRP1_PERIPH_USART1);
+    139          
+    140              /* Release reset of USART clock */
+    141              LL_APB2_GRP1_ReleaseReset(LL_APB2_GRP1_PERIPH_USART1);
+    142            }
+    143            else if (USARTx == USART2)
+    144            {
+    145              /* Force reset of USART clock */
+    146              LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_USART2);
+    147          
+    148              /* Release reset of USART clock */
+    149              LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_USART2);
+    150            }
+    151            else if (USARTx == USART3)
+    152            {
+    153              /* Force reset of USART clock */
+    154              LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_USART3);
+    155          
+    156              /* Release reset of USART clock */
+    157              LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_USART3);
+    158            }
+    159            else if (USARTx == USART6)
+    160            {
+    161              /* Force reset of USART clock */
+    162              LL_APB2_GRP1_ForceReset(LL_APB2_GRP1_PERIPH_USART6);
+    163          
+    164              /* Release reset of USART clock */
+    165              LL_APB2_GRP1_ReleaseReset(LL_APB2_GRP1_PERIPH_USART6);
+    166            }
+    167            else if (USARTx == UART4)
+    168            {
+    169              /* Force reset of UART clock */
+    170              LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_UART4);
+    171          
+    172              /* Release reset of UART clock */
+    173              LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_UART4);
+    174            }
+    175            else if (USARTx == UART5)
+    176            {
+    177              /* Force reset of UART clock */
+    178              LL_APB1_GRP1_ForceReset(LL_APB1_GRP1_PERIPH_UART5);
+    179          
+    180              /* Release reset of UART clock */
+    181              LL_APB1_GRP1_ReleaseReset(LL_APB1_GRP1_PERIPH_UART5);
+    182            }
+    183            else
+    184            {
+    185              status = ERROR;
+    186            }
+    187          
+    188            return (status);
+    189          }
+    190          
+    191          /**
+    192            * @brief  Initialize USART registers according to the specified
+    193            *         parameters in USART_InitStruct.
+    194            * @note   As some bits in USART configuration registers can only be written when the USART is disabled (USART_CR1_UE bit =0),
+    195            *         USART IP should be in disabled state prior calling this function. Otherwise, ERROR result will be returned.
+    196            * @note   Baud rate value stored in USART_InitStruct BaudRate field, should be valid (different from 0).
+    197            * @param  USARTx USART Instance
+    198            * @param  USART_InitStruct pointer to a LL_USART_InitTypeDef structure
+    199            *         that contains the configuration information for the specified USART peripheral.
+    200            * @retval An ErrorStatus enumeration value:
+    201            *          - SUCCESS: USART registers are initialized according to USART_InitStruct content
+    202            *          - ERROR: Problem occurred during USART Registers initialization
+    203            */
+    204          ErrorStatus LL_USART_Init(USART_TypeDef *USARTx, LL_USART_InitTypeDef *USART_InitStruct)
+    205          {
+    206            ErrorStatus status = ERROR;
+    207            uint32_t periphclk = LL_RCC_PERIPH_FREQUENCY_NO;
+    208            LL_RCC_ClocksTypeDef rcc_clocks;
+    209          
+    210            /* Check the parameters */
+    211            assert_param(IS_UART_INSTANCE(USARTx));
+    212            assert_param(IS_LL_USART_BAUDRATE(USART_InitStruct->BaudRate));
+    213            assert_param(IS_LL_USART_DATAWIDTH(USART_InitStruct->DataWidth));
+    214            assert_param(IS_LL_USART_STOPBITS(USART_InitStruct->StopBits));
+    215            assert_param(IS_LL_USART_PARITY(USART_InitStruct->Parity));
+    216            assert_param(IS_LL_USART_DIRECTION(USART_InitStruct->TransferDirection));
+    217            assert_param(IS_LL_USART_HWCONTROL(USART_InitStruct->HardwareFlowControl));
+    218            assert_param(IS_LL_USART_OVERSAMPLING(USART_InitStruct->OverSampling));
+    219          
+    220            /* USART needs to be in disabled state, in order to be able to configure some bits in
+    221               CRx registers */
+    222            if (LL_USART_IsEnabled(USARTx) == 0U)
+    223            {
+    224              /*---------------------------- USART CR1 Configuration -----------------------
+    225               * Configure USARTx CR1 (USART Word Length, Parity, Mode and Oversampling bits) with parameters:
+    226               * - DataWidth:          USART_CR1_M bits according to USART_InitStruct->DataWidth value
+    227               * - Parity:             USART_CR1_PCE, USART_CR1_PS bits according to USART_InitStruct->Parity value
+    228               * - TransferDirection:  USART_CR1_TE, USART_CR1_RE bits according to USART_InitStruct->TransferDirection value
+    229               * - Oversampling:       USART_CR1_OVER8 bit according to USART_InitStruct->OverSampling value.
+    230               */
+    231              MODIFY_REG(USARTx->CR1,
+    232                         (USART_CR1_M | USART_CR1_PCE | USART_CR1_PS |
+    233                          USART_CR1_TE | USART_CR1_RE | USART_CR1_OVER8),
+    234                         (USART_InitStruct->DataWidth | USART_InitStruct->Parity |
+    235                          USART_InitStruct->TransferDirection | USART_InitStruct->OverSampling));
+    236          
+    237              /*---------------------------- USART CR2 Configuration -----------------------
+    238               * Configure USARTx CR2 (Stop bits) with parameters:
+    239               * - Stop Bits:          USART_CR2_STOP bits according to USART_InitStruct->StopBits value.
+    240               * - CLKEN, CPOL, CPHA and LBCL bits are to be configured using LL_USART_ClockInit().
+    241               */
+    242              LL_USART_SetStopBitsLength(USARTx, USART_InitStruct->StopBits);
+    243          
+    244              /*---------------------------- USART CR3 Configuration -----------------------
+    245               * Configure USARTx CR3 (Hardware Flow Control) with parameters:
+    246               * - HardwareFlowControl: USART_CR3_RTSE, USART_CR3_CTSE bits according to USART_InitStruct->HardwareFlowControl value.
+    247               */
+    248              LL_USART_SetHWFlowCtrl(USARTx, USART_InitStruct->HardwareFlowControl);
+    249          
+    250              /*---------------------------- USART BRR Configuration -----------------------
+    251               * Retrieve Clock frequency used for USART Peripheral
+    252               */
+    253              LL_RCC_GetSystemClocksFreq(&rcc_clocks);
+    254              if (USARTx == USART1)
+    255              {
+    256                periphclk = rcc_clocks.PCLK2_Frequency;
+    257              }
+    258              else if (USARTx == USART2)
+    259              {
+    260                periphclk = rcc_clocks.PCLK1_Frequency;
+    261              }
+    262              else if (USARTx == USART3)
+    263              {
+    264                periphclk = rcc_clocks.PCLK1_Frequency;
+    265              }
+    266              else if (USARTx == USART6)
+    267              {
+    268                periphclk = rcc_clocks.PCLK2_Frequency;
+    269              }
+    270              else if (USARTx == UART4)
+    271              {
+    272                periphclk = rcc_clocks.PCLK1_Frequency;
+    273              }
+    274              else if (USARTx == UART5)
+    275              {
+    276                periphclk = rcc_clocks.PCLK1_Frequency;
+    277              }
+    278              else
+    279              {
+    280                /* Nothing to do, as error code is already assigned to ERROR value */
+    281              }
+    282          
+    283              /* Configure the USART Baud Rate :
+    284                 - valid baud rate value (different from 0) is required
+    285                 - Peripheral clock as returned by RCC service, should be valid (different from 0).
+    286              */
+    287              if ((periphclk != LL_RCC_PERIPH_FREQUENCY_NO)
+    288                  && (USART_InitStruct->BaudRate != 0U))
+    289              {
+    290                status = SUCCESS;
+    291                LL_USART_SetBaudRate(USARTx,
+    292                                     periphclk,
+    293                                     USART_InitStruct->OverSampling,
+    294                                     USART_InitStruct->BaudRate);
+    295          
+    296                /* Check BRR is greater than or equal to 16d */
+    297                assert_param(IS_LL_USART_BRR_MIN(USARTx->BRR));
+    298          
+    299                /* Check BRR is greater than or equal to 16d */
+    300                assert_param(IS_LL_USART_BRR_MAX(USARTx->BRR));
+    301              }
+    302            }
+    303            /* Endif (=> USART not in Disabled state => return ERROR) */
+    304          
+    305            return (status);
+    306          }
+    307          
+    308          /**
+    309            * @brief Set each @ref LL_USART_InitTypeDef field to default value.
+    310            * @param USART_InitStruct Pointer to a @ref LL_USART_InitTypeDef structure
+    311            *                         whose fields will be set to default values.
+    312            * @retval None
+    313            */
+    314          
+    315          void LL_USART_StructInit(LL_USART_InitTypeDef *USART_InitStruct)
+    316          {
+    317            /* Set USART_InitStruct fields to default values */
+    318            USART_InitStruct->BaudRate            = 9600U;
+    319            USART_InitStruct->DataWidth           = LL_USART_DATAWIDTH_8B;
+    320            USART_InitStruct->StopBits            = LL_USART_STOPBITS_1;
+    321            USART_InitStruct->Parity              = LL_USART_PARITY_NONE ;
+    322            USART_InitStruct->TransferDirection   = LL_USART_DIRECTION_TX_RX;
+    323            USART_InitStruct->HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+    324            USART_InitStruct->OverSampling        = LL_USART_OVERSAMPLING_16;
+    325          }
+    326          
+    327          /**
+    328            * @brief  Initialize USART Clock related settings according to the
+    329            *         specified parameters in the USART_ClockInitStruct.
+    330            * @note   As some bits in USART configuration registers can only be written when the USART is disabled (USART_CR1_UE bit =0),
+    331            *         USART IP should be in disabled state prior calling this function. Otherwise, ERROR result will be returned.
+    332            * @param  USARTx USART Instance
+    333            * @param  USART_ClockInitStruct Pointer to a @ref LL_USART_ClockInitTypeDef structure
+    334            *         that contains the Clock configuration information for the specified USART peripheral.
+    335            * @retval An ErrorStatus enumeration value:
+    336            *          - SUCCESS: USART registers related to Clock settings are initialized according to USART_ClockInitStruct content
+    337            *          - ERROR: Problem occurred during USART Registers initialization
+    338            */
+    339          ErrorStatus LL_USART_ClockInit(USART_TypeDef *USARTx, LL_USART_ClockInitTypeDef *USART_ClockInitStruct)
+    340          {
+    341            ErrorStatus status = SUCCESS;
+    342          
+    343            /* Check USART Instance and Clock signal output parameters */
+    344            assert_param(IS_UART_INSTANCE(USARTx));
+    345            assert_param(IS_LL_USART_CLOCKOUTPUT(USART_ClockInitStruct->ClockOutput));
+    346          
+    347            /* USART needs to be in disabled state, in order to be able to configure some bits in
+    348               CRx registers */
+    349            if (LL_USART_IsEnabled(USARTx) == 0U)
+    350            {
+    351              /*---------------------------- USART CR2 Configuration -----------------------*/
+    352              /* If Clock signal has to be output */
+    353              if (USART_ClockInitStruct->ClockOutput == LL_USART_CLOCK_DISABLE)
+    354              {
+    355                /* Deactivate Clock signal delivery :
+    356                 * - Disable Clock Output:        USART_CR2_CLKEN cleared
+    357                 */
+    358                LL_USART_DisableSCLKOutput(USARTx);
+    359              }
+    360              else
+    361              {
+    362                /* Ensure USART instance is USART capable */
+    363                assert_param(IS_USART_INSTANCE(USARTx));
+    364          
+    365                /* Check clock related parameters */
+    366                assert_param(IS_LL_USART_CLOCKPOLARITY(USART_ClockInitStruct->ClockPolarity));
+    367                assert_param(IS_LL_USART_CLOCKPHASE(USART_ClockInitStruct->ClockPhase));
+    368                assert_param(IS_LL_USART_LASTBITCLKOUTPUT(USART_ClockInitStruct->LastBitClockPulse));
+    369          
+    370                /*---------------------------- USART CR2 Configuration -----------------------
+    371                 * Configure USARTx CR2 (Clock signal related bits) with parameters:
+    372                 * - Enable Clock Output:         USART_CR2_CLKEN set
+    373                 * - Clock Polarity:              USART_CR2_CPOL bit according to USART_ClockInitStruct->ClockPolarity value
+    374                 * - Clock Phase:                 USART_CR2_CPHA bit according to USART_ClockInitStruct->ClockPhase value
+    375                 * - Last Bit Clock Pulse Output: USART_CR2_LBCL bit according to USART_ClockInitStruct->LastBitClockPulse value.
+    376                 */
+    377                MODIFY_REG(USARTx->CR2,
+    378                           USART_CR2_CLKEN | USART_CR2_CPHA | USART_CR2_CPOL | USART_CR2_LBCL,
+    379                           USART_CR2_CLKEN | USART_ClockInitStruct->ClockPolarity |
+    380                           USART_ClockInitStruct->ClockPhase | USART_ClockInitStruct->LastBitClockPulse);
+    381              }
+    382            }
+    383            /* Else (USART not in Disabled state => return ERROR */
+    384            else
+    385            {
+    386              status = ERROR;
+    387            }
+    388          
+    389            return (status);
+    390          }
+    391          
+    392          /**
+    393            * @brief Set each field of a @ref LL_USART_ClockInitTypeDef type structure to default value.
+    394            * @param USART_ClockInitStruct Pointer to a @ref LL_USART_ClockInitTypeDef structure
+    395            *                              whose fields will be set to default values.
+    396            * @retval None
+    397            */
+    398          void LL_USART_ClockStructInit(LL_USART_ClockInitTypeDef *USART_ClockInitStruct)
+    399          {
+    400            /* Set LL_USART_ClockInitStruct fields with default values */
+    401            USART_ClockInitStruct->ClockOutput       = LL_USART_CLOCK_DISABLE;
+    402            USART_ClockInitStruct->ClockPolarity     = LL_USART_POLARITY_LOW;            /* Not relevant when ClockOutput = LL_USART_CLOCK_DISABLE */
+    403            USART_ClockInitStruct->ClockPhase        = LL_USART_PHASE_1EDGE;             /* Not relevant when ClockOutput = LL_USART_CLOCK_DISABLE */
+    404            USART_ClockInitStruct->LastBitClockPulse = LL_USART_LASTCLKPULSE_NO_OUTPUT;  /* Not relevant when ClockOutput = LL_USART_CLOCK_DISABLE */
+    405          }
+    406          
+    407          /**
+    408            * @}
+    409            */
+    410          
+    411          /**
+    412            * @}
+    413            */
+    414          
+    415          /**
+    416            * @}
+    417            */
+    418          
+    419          #endif /* USART1 || USART2 || USART3 || USART6 || UART4 || UART5 */
+    420          
+    421          /**
+    422            * @}
+    423            */
+    424          
+    425          #endif /* USE_FULL_LL_DRIVER */
+    426          
+    427          /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
+    428          
+
+   Maximum stack usage in bytes:
+
+   .cstack Function
+   ------- --------
+       0   LL_APB1_GRP1_ForceReset
+       0   LL_APB1_GRP1_ReleaseReset
+       0   LL_APB2_GRP1_ForceReset
+       0   LL_APB2_GRP1_ReleaseReset
+      16   LL_USART_ClockInit
+        16   -> LL_USART_DisableSCLKOutput
+        16   -> LL_USART_IsEnabled
+       0   LL_USART_ClockStructInit
+       8   LL_USART_DeInit
+         8   -> LL_APB1_GRP1_ForceReset
+         8   -> LL_APB1_GRP1_ReleaseReset
+         8   -> LL_APB2_GRP1_ForceReset
+         8   -> LL_APB2_GRP1_ReleaseReset
+       0   LL_USART_DisableSCLKOutput
+      40   LL_USART_Init
+        40   -> LL_RCC_GetSystemClocksFreq
+        40   -> LL_USART_IsEnabled
+        40   -> LL_USART_SetBaudRate
+        40   -> LL_USART_SetHWFlowCtrl
+        40   -> LL_USART_SetStopBitsLength
+       0   LL_USART_IsEnabled
+      16   LL_USART_SetBaudRate
+       0   LL_USART_SetHWFlowCtrl
+       0   LL_USART_SetStopBitsLength
+       0   LL_USART_StructInit
+
+
+   Section sizes:
+
+   Bytes  Function/Label
+   -----  --------------
+       4  ??DataTable6
+       4  ??DataTable6_1
+       4  ??DataTable6_2
+       4  ??DataTable6_3
+       4  ??DataTable6_4
+       4  ??DataTable6_5
+       4  ??DataTable6_6
+       4  ??DataTable6_7
+       4  ??DataTable6_8
+      10  LL_APB1_GRP1_ForceReset
+      12  LL_APB1_GRP1_ReleaseReset
+      10  LL_APB2_GRP1_ForceReset
+      12  LL_APB2_GRP1_ReleaseReset
+      66  LL_USART_ClockInit
+      18  LL_USART_ClockStructInit
+     148  LL_USART_DeInit
+      10  LL_USART_DisableSCLKOutput
+     158  LL_USART_Init
+      10  LL_USART_IsEnabled
+     260  LL_USART_SetBaudRate
+      12  LL_USART_SetHWFlowCtrl
+      12  LL_USART_SetStopBitsLength
+      32  LL_USART_StructInit
+
+ 
+ 806 bytes in section .text
+ 
+ 806 bytes of CODE memory
+
+Errors: none
+Warnings: none
