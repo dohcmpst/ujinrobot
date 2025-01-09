@@ -23,7 +23,7 @@
 //float FW_Version = 0.312;			//	LB_0001,	Cap 280 to 380 변경, BMS RESET SOC OCV Table 적용
 //float	FW_Version = 0.313;			//	Cap 380 변경, BMS RESET SOC OCV Table 적용, PF, Balancing, FRAM, PARAMETER CAN I/F
 //float	FW_Version = 0.315;			//	230913 30대분 시리얼 번호 뒤 V1 표기	Cap 380 변경, BMS RESET SOC OCV Table 적용, PF, Balancingv
-float	FW_Version = 2.3;
+float	FW_Version = 2.4;          // 250109 
 
 static uint32_t System_time;
 static uint16_t flag_10ms;
@@ -170,7 +170,7 @@ void Task_25ms(void)
 			//log_debug("\r\n sensing count : %d\r\n",current_count);
 			//System_Info.Electric.s32_Sum_of_1sec_Current = (int)temp_current/40;//ORG
 			//System_Info.Electric.s32_Sum_of_1sec_Current = (int)temp_current/40*0.549;//유진 #1 보정
-			System_Info.Electric.s32_Sum_of_1sec_Current = (int)temp_current/40*1.013;//유진 #2 보정
+			System_Info.Electric.s32_Sum_of_1sec_Current = (int)temp_current/40;//유진 #2 보정
 			temp_current = 0;
 			current_count = 0;
 		}

@@ -19,7 +19,7 @@
 #endif
 
 //추후 이동 or System_Info에서 include 요망
-char u8_FW_Version				=23;    //Ver2.2 10단위 이하는 임시로 소수점 이렇게 표시함
+char u8_FW_Version				=24;    //Ver2.2 10단위 이하는 임시로 소수점 이렇게 표시함
 char u8_Serial_Number			=0x01; //1번 Pack 추후 시리얼 규정에 맞춰 수정요망
 uint16_t u16_Manufacture_Year	=2024;
 uint8_t u8_Manufacture_Month	=7;

@@ -137,7 +137,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
 	/* Configure the vector table base address. */
-	VectorBase_Config();
+	//VectorBase_Config();
 
   /* USER CODE END 1 */
 
